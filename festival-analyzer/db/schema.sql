@@ -1,0 +1,250 @@
+-- ============================================================
+-- Festival Analyzer — Supabase Schema
+-- Run this in the Supabase SQL editor to initialize the DB
+-- ============================================================
+
+-- Enable extensions
+create extension if not exists "pg_trgm";      -- full-text fuzzy search
+create extension if not exists "unaccent";      -- normalize accented artist names
+create extension if not exists "uuid-ossp";    -- uuid generation
+
+-- ============================================================
+-- FESTIVALS
+-- ============================================================
+create table if not exists festivals (
+  id            uuid primary key default uuid_generate_v4(),
+  slug          text unique not null,              -- lollapalooza-chicago
+  name          text not null,                     -- Lollapalooza
+  city          text,
+  state         text,
+  country       text default 'US',
+  venue         text,
+  start_date    date,
+  end_date      date,
+  website_url   text,
+  wikipedia_url text,
+  description   text,
+  tags          text[] default '{}',               -- ['rock', 'multi-genre', 'outdoor', 'annual']
+  instagram_handle text,
+  x_handle      text,
+  accent_color  text,                              -- hex for festival theming, e.g. '#FF4500'
+  hero_image_url text,
+  logo_url      text,
+  is_active     boolean default true,
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now()
+);
+
+-- ============================================================
+-- ARTISTS
+-- ============================================================
+create table if not exists artists (
+  id              uuid primary key default uuid_generate_v4(),
+  slug            text unique not null,
+  name            text not null,
+  bio             text,
+  genres          text[] default '{}',
+  origin_city     text,
+  origin_country  text,
+  website_url     text,
+  spotify_id      text unique,
+  apple_music_id  text,
+  spotify_url     text,
+  apple_music_url text,
+  spotify_followers bigint,
+  spotify_popularity int,                          -- 0–100
+  preview_url     text,                            -- 30s Spotify preview
+  image_url       text,
+  header_image_url text,
+  tags            text[] default '{}',
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
+-- ============================================================
+-- LINEUPS (festival × artist join)
+-- ============================================================
+create table if not exists lineups (
+  id            uuid primary key default uuid_generate_v4(),
+  festival_id   uuid references festivals(id) on delete cascade,
+  artist_id     uuid references artists(id) on delete cascade,
+  year          int not null,
+  stage         text,                              -- Main Stage, Perry's, etc.
+  day           date,
+  set_time_start time,
+  set_time_end   time,
+  is_headliner  boolean default false,
+  created_at    timestamptz default now(),
+  unique (festival_id, artist_id, year)
+);
+
+-- ============================================================
+-- MEDIA (photos per festival, sourced from Unsplash)
+-- ============================================================
+create table if not exists media (
+  id              uuid primary key default uuid_generate_v4(),
+  festival_id     uuid references festivals(id) on delete cascade,
+  unsplash_id     text,
+  url_regular     text,
+  url_thumb       text,
+  url_full        text,
+  alt_text        text,
+  photographer    text,
+  photographer_url text,
+  credit_html     text,                            -- required Unsplash attribution
+  created_at      timestamptz default now()
+);
+
+-- ============================================================
+-- SOCIAL POSTS (synced from IG + X per festival)
+-- ============================================================
+create table if not exists social_posts (
+  id              uuid primary key default uuid_generate_v4(),
+  festival_id     uuid references festivals(id) on delete cascade,
+  platform        text not null check (platform in ('instagram', 'x')),
+  post_id         text not null,
+  post_url        text,
+  content         text,
+  media_url       text,
+  media_type      text,                            -- image, video, carousel
+  posted_at       timestamptz,
+  like_count      int,
+  comment_count   int,
+  synced_at       timestamptz default now(),
+  unique (platform, post_id)
+);
+
+-- ============================================================
+-- FUN FACTS (AI-generated per festival × year)
+-- ============================================================
+create table if not exists fun_facts (
+  id              uuid primary key default uuid_generate_v4(),
+  festival_id     uuid references festivals(id) on delete cascade,
+  year            int not null,
+  facts           jsonb not null,                  -- array of {fact: string, category: string}
+  generated_at    timestamptz default now(),
+  model_version   text,
+  unique (festival_id, year)
+);
+
+-- ============================================================
+-- TAGS (normalized tag registry for filtering)
+-- ============================================================
+create table if not exists tags (
+  id    uuid primary key default uuid_generate_v4(),
+  slug  text unique not null,
+  label text not null,
+  type  text check (type in ('genre', 'vibe', 'format', 'region', 'season'))
+);
+
+-- Seed core tags
+insert into tags (slug, label, type) values
+  ('multi-genre', 'Multi-Genre', 'genre'),
+  ('electronic', 'Electronic', 'genre'),
+  ('hip-hop', 'Hip-Hop', 'genre'),
+  ('rock', 'Rock', 'genre'),
+  ('indie', 'Indie', 'genre'),
+  ('edm', 'EDM', 'genre'),
+  ('country', 'Country', 'genre'),
+  ('jazz', 'Jazz', 'genre'),
+  ('outdoor', 'Outdoor', 'format'),
+  ('camping', 'Camping', 'format'),
+  ('urban', 'Urban', 'format'),
+  ('multi-day', 'Multi-Day', 'format'),
+  ('annual', 'Annual', 'vibe'),
+  ('flagship', 'Flagship', 'vibe'),
+  ('midwest', 'Midwest', 'region'),
+  ('southwest', 'Southwest', 'region'),
+  ('southeast', 'Southeast', 'region'),
+  ('west-coast', 'West Coast', 'region'),
+  ('northeast', 'Northeast', 'region'),
+  ('spring', 'Spring', 'season'),
+  ('summer', 'Summer', 'season'),
+  ('fall', 'Fall', 'season')
+on conflict (slug) do nothing;
+
+-- ============================================================
+-- INDEXES
+-- ============================================================
+
+-- Fuzzy search on festival + artist names
+create index if not exists idx_festivals_name_trgm on festivals using gin (name gin_trgm_ops);
+create index if not exists idx_artists_name_trgm   on artists  using gin (name gin_trgm_ops);
+
+-- Tag array search
+create index if not exists idx_festivals_tags on festivals using gin (tags);
+create index if not exists idx_artists_tags   on artists  using gin (tags);
+create index if not exists idx_artists_genres on artists  using gin (genres);
+
+-- Lineup lookups
+create index if not exists idx_lineups_festival on lineups (festival_id, year);
+create index if not exists idx_lineups_artist   on lineups (artist_id);
+
+-- Social posts by festival + platform
+create index if not exists idx_social_festival_platform on social_posts (festival_id, platform, posted_at desc);
+
+-- ============================================================
+-- FULL-TEXT SEARCH FUNCTION
+-- Supports searching by festival name, city, tag, genre, artist name
+-- ============================================================
+create or replace function search_all(query text)
+returns table (
+  type        text,
+  id          uuid,
+  slug        text,
+  name        text,
+  description text,
+  score       float
+) as $$
+  select
+    'festival'::text as type,
+    f.id, f.slug, f.name,
+    f.description,
+    similarity(f.name, query) as score
+  from festivals f
+  where f.name % query or f.tags @> array[lower(query)]
+  union all
+  select
+    'artist'::text,
+    a.id, a.slug, a.name,
+    a.bio,
+    similarity(a.name, query) as score
+  from artists a
+  where a.name % query or a.genres @> array[lower(query)]
+  order by score desc
+  limit 20;
+$$ language sql stable;
+
+-- ============================================================
+-- ROW LEVEL SECURITY (public read, service role write)
+-- ============================================================
+alter table festivals    enable row level security;
+alter table artists      enable row level security;
+alter table lineups      enable row level security;
+alter table media        enable row level security;
+alter table social_posts enable row level security;
+alter table fun_facts    enable row level security;
+alter table tags         enable row level security;
+
+-- Public read policies
+create policy "Public read festivals"    on festivals    for select using (true);
+create policy "Public read artists"      on artists      for select using (true);
+create policy "Public read lineups"      on lineups      for select using (true);
+create policy "Public read media"        on media        for select using (true);
+create policy "Public read social_posts" on social_posts for select using (true);
+create policy "Public read fun_facts"    on fun_facts    for select using (true);
+create policy "Public read tags"         on tags         for select using (true);
+
+-- ============================================================
+-- UPDATED_AT triggers
+-- ============================================================
+create or replace function set_updated_at()
+returns trigger as $$
+begin new.updated_at = now(); return new; end;
+$$ language plpgsql;
+
+create trigger festivals_updated_at before update on festivals
+  for each row execute function set_updated_at();
+
+create trigger artists_updated_at before update on artists
+  for each row execute function set_updated_at();
