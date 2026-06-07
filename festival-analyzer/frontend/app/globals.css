@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Font stack — Inter is loaded via <link> in layout, falls back gracefully */
+  --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+
+  /* Default theme (overridden per-festival via <FestivalThemeStyle/>) */
+  --accent: #ff4500;
+  --accent-light: #ff7a45;
+  --accent-dark: #cc3700;
+  --surface: #0a0a0a;
+  --surface-elevated: #141414;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.55);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Respect reduced-motion at the platform level */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbars on horizontal-scroll strips while keeping scrollability */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Subtle top-down gradient used on hero overlays */
+.hero-scrim {
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 10, 0.1) 0%,
+    rgba(10, 10, 10, 0.4) 55%,
+    rgba(10, 10, 10, 0.95) 100%
+  );
+}

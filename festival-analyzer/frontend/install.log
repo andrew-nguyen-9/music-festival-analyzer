@@ -1,0 +1,86 @@
+npm warn deprecated next@14.2.5: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details.
+npm warn cleanup Failed to remove some directories [
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-x64-msvc',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-x64-msvc'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-x64-msvc'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-arm64-msvc',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-arm64-msvc'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-arm64-msvc'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-musl',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-musl'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-musl'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-ia32-msvc',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-ia32-msvc'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-win32-ia32-msvc'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-gnu',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-gnu'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-x64-gnu'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-arm64-musl',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-arm64-musl'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-linux-arm64-musl'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-x64',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-x64'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-x64'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-arm64',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-arm64'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/@next/swc-darwin-arm64'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/fsevents',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/fsevents'] {
+npm warn cleanup       errno: -1,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: '/sessions/eager-trusting-hawking/mnt/Music Festival Dashboard/festival-analyzer/frontend/node_modules/fsevents'
+npm warn cleanup     }
+npm warn cleanup   ]
+npm warn cleanup ]
+
+added 117 packages in 26s

@@ -1,0 +1,138 @@
+// ─────────────────────────────────────────────────────────────
+// Database types — mirror db/schema.sql.
+// Keep in sync with the Supabase schema.
+// ─────────────────────────────────────────────────────────────
+
+export interface Festival {
+  id: string;
+  slug: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  venue: string | null;
+  start_date: string | null; // ISO date
+  end_date: string | null; // ISO date
+  website_url: string | null;
+  wikipedia_url: string | null;
+  description: string | null;
+  tags: string[];
+  instagram_handle: string | null;
+  x_handle: string | null;
+  accent_color: string | null; // hex
+  hero_image_url: string | null;
+  logo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Artist {
+  id: string;
+  slug: string;
+  name: string;
+  bio: string | null;
+  genres: string[];
+  origin_city: string | null;
+  origin_country: string | null;
+  website_url: string | null;
+  spotify_id: string | null;
+  apple_music_id: string | null;
+  spotify_url: string | null;
+  apple_music_url: string | null;
+  spotify_followers: number | null;
+  spotify_popularity: number | null; // 0–100
+  preview_url: string | null;
+  image_url: string | null;
+  header_image_url: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Lineup {
+  id: string;
+  festival_id: string;
+  artist_id: string;
+  year: number;
+  stage: string | null;
+  day: string | null; // ISO date
+  set_time_start: string | null;
+  set_time_end: string | null;
+  is_headliner: boolean;
+  created_at: string;
+}
+
+export interface Media {
+  id: string;
+  festival_id: string;
+  unsplash_id: string | null;
+  url_regular: string | null;
+  url_thumb: string | null;
+  url_full: string | null;
+  alt_text: string | null;
+  photographer: string | null;
+  photographer_url: string | null;
+  credit_html: string | null;
+  created_at: string;
+}
+
+export type SocialPlatform = "instagram" | "x";
+
+export interface SocialPost {
+  id: string;
+  festival_id: string;
+  platform: SocialPlatform;
+  post_id: string;
+  post_url: string | null;
+  content: string | null;
+  media_url: string | null;
+  media_type: string | null;
+  posted_at: string | null;
+  like_count: number | null;
+  comment_count: number | null;
+  synced_at: string;
+}
+
+export interface FunFact {
+  fact: string;
+  category: string;
+  artists_mentioned?: string[];
+}
+
+export interface FunFactsRow {
+  id: string;
+  festival_id: string;
+  year: number;
+  facts: FunFact[];
+  generated_at: string;
+  model_version: string | null;
+}
+
+export interface Tag {
+  id: string;
+  slug: string;
+  label: string;
+  type: "genre" | "vibe" | "format" | "region" | "season" | null;
+}
+
+// ── Composite / view types used by the UI ──────────────────────
+
+/** A lineup row joined with its artist — what LineupGrid renders. */
+export interface LineupEntry extends Lineup {
+  artist: Artist;
+}
+
+/** An artist's appearance joined with the festival it was at. */
+export interface ArtistAppearance extends Lineup {
+  festival: Festival;
+}
+
+export interface SearchResult {
+  type: "festival" | "artist";
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  score: number;
+}

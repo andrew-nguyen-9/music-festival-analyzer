@@ -62,3 +62,28 @@ insert into lineups (festival_id, artist_id, year, is_headliner, stage) values
   ('{festival_id}', (select id from artists where slug = 'lcd-soundsystem'), 2026, false, 'Perry''s')
 on conflict (festival_id, artist_id, year) do nothing;
 */
+
+-- ============================================================
+-- RUNNABLE lineup seed (no manual UUID needed)
+-- Resolves festival_id + artist_id via subquery, so this whole file
+-- can be pasted into the Supabase SQL editor and run in one shot,
+-- after schema.sql. Idempotent (safe to re-run).
+-- ============================================================
+insert into lineups (festival_id, artist_id, year, is_headliner, stage, day) values
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'hozier'),            2026, true,  'Bud Light Stage', '2026-07-30'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'chappell-roan'),     2026, true,  'T-Mobile Stage',  '2026-07-30'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'sabrina-carpenter'), 2026, true,  'Bud Light Stage', '2026-07-31'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'tyler-the-creator'), 2026, true,  'T-Mobile Stage',  '2026-07-31'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'the-1975'),          2026, false, 'Perry''s',         '2026-08-01'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'charli-xcx'),        2026, false, 'Bud Light Stage', '2026-08-01'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'gracie-abrams'),     2026, false, 'BMI Stage',       '2026-08-01'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'beabadoobee'),       2026, false, 'BMI Stage',       '2026-08-02'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'interpol'),          2026, false, 'T-Mobile Stage',  '2026-08-02'),
+  ((select id from festivals where slug = 'lollapalooza'), (select id from artists where slug = 'lcd-soundsystem'),   2026, false, 'Perry''s',         '2026-08-02')
+on conflict (festival_id, artist_id, year) do nothing;
+
+-- Sanity check (optional): how many artists are linked?
+-- select f.name, count(*) as artists
+-- from lineups l join festivals f on f.id = l.festival_id
+-- where f.slug = 'lollapalooza' and l.year = 2026
+-- group by f.name;

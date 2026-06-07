@@ -1,0 +1,69 @@
+import Image from "next/image";
+import Link from "next/link";
+import { accentGradient } from "@/lib/festival-theme";
+import { formatDateRange, formatLocation } from "@/lib/format";
+import type { Festival } from "@/lib/types";
+
+interface Props {
+  festival: Festival;
+  priority?: boolean;
+}
+
+export default function FestivalCard({ festival, priority }: Props) {
+  const accent = festival.accent_color ?? "#FF4500";
+  return (
+    <Link
+      href={`/festival/${festival.slug}`}
+      className="group relative block overflow-hidden rounded-2xl border border-white/10 bg-surface-elevated"
+      style={{ ["--accent" as string]: accent }}
+    >
+      <div className="relative aspect-[4/5] w-full overflow-hidden">
+        {festival.hero_image_url ? (
+          <Image
+            src={festival.hero_image_url}
+            alt={festival.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            priority={priority}
+          />
+        ) : (
+          <div
+            className="h-full w-full transition-transform duration-700 group-hover:scale-105"
+            style={{ backgroundImage: accentGradient(accent) }}
+            aria-hidden
+          />
+        )}
+        <div className="hero-scrim absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 p-5">
+          <p className="text-label uppercase tracking-[0.12em] text-white/70">
+            {formatLocation(festival.city, festival.state)}
+          </p>
+          <h3 className="mt-1 text-display-md font-semibold leading-none text-white">
+            {festival.name}
+          </h3>
+          <p className="mt-2 text-label text-white/80">
+            {formatDateRange(festival.start_date, festival.end_date)}
+          </p>
+          {festival.tags?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {festival.tags.slice(0, 3).map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[11px] uppercase tracking-wide text-white/80 backdrop-blur"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <span
+          className="pointer-events-none absolute left-0 top-0 h-1 w-full origin-left scale-x-0 transition-transform duration-500 group-hover:scale-x-100"
+          style={{ backgroundColor: accent }}
+          aria-hidden
+        />
+      </div>
+    </Link>
+  );
+}
