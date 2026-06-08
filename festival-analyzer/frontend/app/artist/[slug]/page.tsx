@@ -9,13 +9,14 @@ import { getArtistBySlug, getArtistAppearances } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const artist = await getArtistBySlug(params.slug);
+  const { slug } = await params;
+  const artist = await getArtistBySlug(slug);
   if (!artist) return { title: "Artist not found" };
   return {
     title: artist.name,
@@ -25,7 +26,8 @@ export async function generateMetadata({
 }
 
 export default async function ArtistPage({ params }: PageProps) {
-  const artist = await getArtistBySlug(params.slug);
+  const { slug } = await params;
+  const artist = await getArtistBySlug(slug);
   if (!artist) notFound();
 
   const appearances = await getArtistAppearances(artist.id);

@@ -12,13 +12,14 @@ import { getFestivalBySlug, getFestivalPageData } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const festival = await getFestivalBySlug(params.slug);
+  const { slug } = await params;
+  const festival = await getFestivalBySlug(slug);
   if (!festival) return { title: "Festival not found" };
   return {
     title: festival.name,
@@ -32,7 +33,8 @@ export async function generateMetadata({
 }
 
 export default async function FestivalPage({ params }: PageProps) {
-  const data = await getFestivalPageData(params.slug);
+  const { slug } = await params;
+  const data = await getFestivalPageData(slug);
   if (!data) notFound();
 
   const { festival, year, lineup, media, social, funFacts, related } = data;
