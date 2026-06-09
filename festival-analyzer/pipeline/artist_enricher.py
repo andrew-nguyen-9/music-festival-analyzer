@@ -1,8 +1,8 @@
 """
 artist_enricher.py
 ------------------
-Pulls artist metadata from Spotify and Apple Music for all artists
-in the artists table, and updates their records in Supabase.
+Pulls artist metadata from Spotify for all artists in the artists
+table, and updates their records in Supabase.
 
 Run:
     python artist_enricher.py                    # enrich all artists missing Spotify data
@@ -18,6 +18,7 @@ import logging
 import argparse
 from dotenv import load_dotenv
 
+import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from supabase import create_client, Client
@@ -46,6 +47,33 @@ def get_spotify() -> spotipy.Spotify:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
+def fetch_deezer_image(artist_name: str) -> str | None:
+    """
+    Free, no-auth fallback for artist photos when Spotify has none.
+    Deezer's public API returns picture_xl (1000x1000).
+    """
+    try:
+        resp = requests.get(
+            "https://api.deezer.com/search/artist",
+            params={"q": artist_name, "limit": 1},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        items = resp.json().get("data", [])
+        if not items:
+            return None
+        pic = items[0].get("picture_xl") or items[0].get("picture_big")
+        # Deezer returns a blank silhouette placeholder for unknown artists;
+        # those URLs contain "/artist//" — skip them.
+        if pic and "/artist//" not in pic:
+            return pic
+        return None
+    except Exception as e:
+        log.warning(f"Deezer lookup failed for {artist_name}: {e}")
+        return None
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
 def enrich_from_spotify(sp: spotipy.Spotify, artist_name: str) -> dict | None:
     """
     Searches Spotify for an artist by name, returns enrichment payload.
@@ -59,25 +87,20 @@ def enrich_from_spotify(sp: spotipy.Spotify, artist_name: str) -> dict | None:
     top_tracks = sp.artist_top_tracks(a["id"], country="US").get("tracks", [])
     preview_url = next((t["preview_url"] for t in top_tracks if t.get("preview_url")), None)
 
+    # Spotify photo first; fall back to Deezer's free no-auth image if missing.
+    image_url = a["images"][0]["url"] if a.get("images") else None
+    if not image_url:
+        image_url = fetch_deezer_image(artist_name)
+
     return {
         "spotify_id": a["id"],
         "spotify_url": a["external_urls"].get("spotify"),
         "spotify_followers": a["followers"]["total"],
         "spotify_popularity": a["popularity"],
         "genres": a.get("genres", []),
-        "image_url": a["images"][0]["url"] if a.get("images") else None,
+        "image_url": image_url,
         "preview_url": preview_url,
     }
-
-
-def build_apple_music_url(artist_name: str) -> str:
-    """
-    Constructs a best-effort Apple Music search URL for an artist.
-    Full Apple Music API integration requires a MusicKit token (JWT).
-    See docs/API_REFERENCE.md for full Apple Music setup.
-    """
-    query = artist_name.replace(" ", "+")
-    return f"https://music.apple.com/us/search?term={query}"
 
 
 def enrich_artists(supabase: Client, sp: spotipy.Spotify, artists: list[dict]) -> None:
@@ -89,7 +112,6 @@ def enrich_artists(supabase: Client, sp: spotipy.Spotify, artists: list[dict]) -
             console.log(f"[yellow]No Spotify match for: {name}")
             continue
 
-        enrichment["apple_music_url"] = build_apple_music_url(name)
         enrichment["updated_at"] = "now()"
 
         try:
@@ -142,7 +164,6 @@ def upsert_artist(supabase: Client, sp: spotipy.Spotify, name: str) -> None:
 
     enrichment = enrich_from_spotify(sp, name)
     if enrichment:
-        enrichment["apple_music_url"] = build_apple_music_url(name)
         supabase.table("artists").update(enrichment).eq("id", artist["id"]).execute()
         console.log(f"[green]Upserted + enriched: {name}")
     else:
@@ -150,7 +171,7 @@ def upsert_artist(supabase: Client, sp: spotipy.Spotify, name: str) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Enrich artists via Spotify + Apple Music")
+    parser = argparse.ArgumentParser(description="Enrich artists via Spotify")
     parser.add_argument("--artist", type=str, help="Enrich a single artist by name")
     parser.add_argument("--festival", type=str, help="Enrich all artists in this festival slug")
     parser.add_argument("--year", type=int, help="Filter by lineup year (use with --festival)")

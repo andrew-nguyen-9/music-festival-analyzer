@@ -20,13 +20,12 @@ export default function Nav() {
           <Link href="/" className="transition-colors hover:text-white">
             Festivals
           </Link>
-          <a
-            href="https://github.com"
+          <Link
+            href="/about"
             className="hidden transition-colors hover:text-white sm:inline"
-            rel="noreferrer"
           >
             About
-          </a>
+          </Link>
         </nav>
       </div>
     </header>

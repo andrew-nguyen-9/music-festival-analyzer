@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 :root {
-  /* Font stack — Inter is loaded via <link> in layout, falls back gracefully */
+  /* Font stack — loaded via <link> in layout, falls back gracefully */
   --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
     "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  /* Distinctive display face for headings / identity type */
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Default theme (overridden per-festival via <FestivalThemeStyle/>) */
   --accent: #ff4500;
@@ -57,4 +59,57 @@ body {
     rgba(10, 10, 10, 0.4) 55%,
     rgba(10, 10, 10, 0.95) 100%
   );
+}
+
+/* Headings use the distinctive display face; body stays Inter */
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ── Film grain overlay (creative-dev T19) ───────────────── */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay {
+    display: none;
+  }
+}
+
+/* ── Custom cursor (creative-dev T02) ────────────────────── */
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid #fff;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  mix-blend-mode: difference;
+  transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease;
+  will-change: transform;
+}
+.cursor-ring--grow {
+  width: 56px;
+  height: 56px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+body.cursor-none,
+body.cursor-none * {
+  cursor: none !important;
 }

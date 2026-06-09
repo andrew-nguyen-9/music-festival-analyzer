@@ -1,49 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import EmptyState from "./EmptyState";
 import { formatCount, timeAgo } from "@/lib/format";
-import type { SocialPost, SocialPlatform } from "@/lib/types";
+import type { SocialPost } from "@/lib/types";
 
 interface Props {
   posts: SocialPost[];
-  defaultPlatform?: SocialPlatform;
 }
 
-export default function SocialFeed({
-  posts,
-  defaultPlatform = "instagram",
-}: Props) {
-  const [platform, setPlatform] = useState<SocialPlatform>(defaultPlatform);
-
+/**
+ * Instagram-only social feed. (X/Twitter was removed for v1; Instagram
+ * sync is on hold, so this shows an empty state until feed data lands.)
+ */
+export default function SocialFeed({ posts }: Props) {
   const visible = useMemo(
-    () => posts.filter((p) => p.platform === platform),
-    [posts, platform],
+    () => posts.filter((p) => p.platform === "instagram"),
+    [posts],
   );
 
   return (
     <section className="mx-auto max-w-wide px-5 py-16 md:px-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center gap-3">
         <h2 className="text-display-lg text-white">Social</h2>
-        <div className="inline-flex rounded-full border border-white/15 p-1">
-          <Tab
-            label="Instagram"
-            active={platform === "instagram"}
-            onClick={() => setPlatform("instagram")}
-          />
-          <Tab
-            label="X"
-            active={platform === "x"}
-            onClick={() => setPlatform("x")}
-          />
-        </div>
+        <span className="rounded-full border border-white/15 px-3 py-1 text-label uppercase tracking-wide text-white/60">
+          Instagram
+        </span>
       </div>
 
       {visible.length === 0 ? (
         <EmptyState
-          title={`No ${platform === "x" ? "X" : "Instagram"} posts yet`}
-          hint="Run pipeline/feed_syncer.py to pull the latest posts into the social_posts table."
+          title="Instagram feed coming soon"
+          hint="Instagram sync is on hold for now — the latest posts will appear here once it's connected."
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -90,27 +79,5 @@ function PostCard({ post }: { post: SocialPost }) {
         </div>
       </div>
     </a>
-  );
-}
-
-function Tab({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={
-        "rounded-full px-4 py-1.5 text-label font-semibold uppercase tracking-wide transition-colors " +
-        (active ? "bg-accent text-black" : "text-white/70 hover:text-white")
-      }
-    >
-      {label}
-    </button>
   );
 }

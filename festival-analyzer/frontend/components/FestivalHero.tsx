@@ -1,4 +1,5 @@
 import Image from "next/image";
+import ScrollScaleTitle from "./ScrollScaleTitle";
 import { accentGradient } from "@/lib/festival-theme";
 import { formatDateRange, formatLocation } from "@/lib/format";
 import type { Festival } from "@/lib/types";
@@ -34,7 +35,10 @@ export default function FestivalHero({ festival }: Props) {
           {formatLocation(festival.city, festival.state)}
           {festival.venue ? ` · ${festival.venue}` : ""}
         </p>
-        <h1 className="text-display-xl text-white">{festival.name}</h1>
+        <ScrollScaleTitle
+          name={festival.name}
+          className="text-display-xl text-white"
+        />
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <span className="text-body-lg text-white">
             {formatDateRange(festival.start_date, festival.end_date)}

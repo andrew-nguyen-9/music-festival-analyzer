@@ -37,7 +37,19 @@ FESTIVAL_QUERIES = {
     "governors-ball": "governors ball music festival new york",
 }
 
+# Map festival slug → city-image search, used for the festival HERO background.
+# Each festival shows a city image (not a generic crowd shot) as its hero.
+CITY_QUERIES = {
+    "lollapalooza": "chicago skyline downtown",
+    "coachella": "palm springs california desert",
+    "electric-daisy-carnival-las-vegas": "las vegas skyline night",
+    "south-by-southwest": "austin texas skyline",
+    "ultra-music-festival": "miami skyline downtown",
+    "governors-ball": "new york city skyline",
+}
+
 DEFAULT_QUERY = "{name} music festival concert"
+DEFAULT_CITY_QUERY = "{city} city skyline"
 PHOTOS_PER_FESTIVAL = 12
 
 
@@ -94,10 +106,43 @@ def photo_to_record(photo: dict, festival_id: str) -> dict:
     }
 
 
+def set_city_hero(supabase: Client, festival: dict) -> None:
+    """
+    Set festivals.hero_image_url to a city image — but only if one isn't
+    already set, so manually-curated heroes are never overwritten.
+    """
+    if festival.get("hero_image_url"):
+        return
+
+    slug = festival["slug"]
+    city = festival.get("city") or festival["name"]
+    query = CITY_QUERIES.get(slug, DEFAULT_CITY_QUERY.format(city=city))
+
+    photos = fetch_unsplash_photos(query, count=1)
+    if not photos:
+        console.log(f"[yellow]No city image found for {festival['name']} ({query})")
+        return
+
+    hero_url = photos[0].get("urls", {}).get("regular")
+    if not hero_url:
+        return
+
+    try:
+        supabase.table("festivals").update(
+            {"hero_image_url": hero_url, "updated_at": "now()"}
+        ).eq("id", festival["id"]).execute()
+        console.log(f"[green]Set city hero for {festival['name']} ({query})")
+    except Exception as e:
+        log.error(f"Failed to set hero for {festival['slug']}: {e}")
+
+
 def fetch_for_festival(supabase: Client, festival: dict) -> None:
     slug = festival["slug"]
     name = festival["name"]
     festival_id = festival["id"]
+
+    # City hero image (only if not already set).
+    set_city_hero(supabase, festival)
 
     query = FESTIVAL_QUERIES.get(slug, DEFAULT_QUERY.format(name=name))
     console.log(f"[cyan]Fetching Unsplash photos for {name} (query: {query})")

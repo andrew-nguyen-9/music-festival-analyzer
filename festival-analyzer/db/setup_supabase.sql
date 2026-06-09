@@ -267,7 +267,7 @@ insert into festivals (
   website_url, wikipedia_url,
   description,
   instagram_handle, x_handle,
-  accent_color, tags
+  accent_color, hero_image_url, tags
 ) values (
   'lollapalooza',
   'Lollapalooza',
@@ -279,11 +279,14 @@ insert into festivals (
   'One of the longest-running and most iconic American music festivals, held annually in Grant Park in Chicago. Known for its diverse multi-genre lineup spanning rock, electronic, hip-hop, indie, and everything in between.',
   'lollapalooza', 'lollapalooza',
   '#FF4500',
+  -- City image (Chicago skyline) used as the festival hero background
+  'https://images.unsplash.com/photo-1631548637245-043803a8b776?q=80&w=987&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   ARRAY['multi-genre', 'outdoor', 'annual', 'flagship', 'urban', 'summer', 'midwest']
 )
 on conflict (slug) do update set
   updated_at = now(),
   description = excluded.description,
+  hero_image_url = excluded.hero_image_url,
   tags = excluded.tags;
 
 -- Example artist inserts (replace with actual 2026 lineup when announced)

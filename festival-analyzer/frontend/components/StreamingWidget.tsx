@@ -13,16 +13,12 @@ export default function StreamingWidget({ artist }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1fr,auto]">
         <MusicPlayerToggle
           spotifyId={artist.spotify_id}
-          appleMusicId={artist.apple_music_id}
           previewUrl={artist.preview_url}
           spotifyEntity="artist"
         />
         <div className="flex flex-row gap-3 lg:flex-col">
           {artist.spotify_url && (
             <LinkBtn href={artist.spotify_url} label="Open in Spotify ↗" />
-          )}
-          {artist.apple_music_url && (
-            <LinkBtn href={artist.apple_music_url} label="Open in Apple Music ↗" />
           )}
           {artist.website_url && (
             <LinkBtn href={artist.website_url} label="Official site ↗" subtle />

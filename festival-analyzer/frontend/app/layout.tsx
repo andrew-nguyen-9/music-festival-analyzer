@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import CustomCursor from "@/components/CustomCursor";
 
 export const metadata: Metadata = {
   title: {
@@ -29,10 +30,13 @@ export default function RootLayout({
         />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
         />
       </head>
       <body className="min-h-screen bg-surface font-sans text-white antialiased">
+        {/* Film-grain texture overlay (creative-dev T19) */}
+        <div className="grain-overlay" aria-hidden />
+        <CustomCursor />
         <Nav />
         <main>{children}</main>
         <footer className="border-t border-white/10 px-5 py-10 text-label text-[color:var(--text-muted)] md:px-8">
