@@ -68,3 +68,51 @@ export function festivalYear(startDate?: string | null): number {
   }
   return new Date().getFullYear();
 }
+
+export type FestivalState = "passed" | "schedule" | "lineup" | "tbd";
+
+/**
+ * Derives the festival page display state purely from data:
+ *   passed   — end_date is in the past
+ *   schedule — lineup rows exist and at least one has a `day` set
+ *   lineup   — lineup rows exist but no day-level schedule
+ *   tbd      — no lineup rows at all
+ */
+export function getFestivalState(
+  endDate: string | null,
+  lineupCount: number,
+  hasSchedule: boolean,
+): FestivalState {
+  const today = new Date().toISOString().slice(0, 10);
+  if (endDate && endDate < today) return "passed";
+  if (lineupCount === 0) return "tbd";
+  if (hasSchedule) return "schedule";
+  return "lineup";
+}
+
+/**
+ * Given lineup entries, returns true if at least one has two distinct
+ * weekends worth of dates (i.e. dates span more than 7 days apart).
+ */
+export function hasMultipleWeekends(days: (string | null)[]): boolean {
+  const dates = days
+    .filter((d): d is string => d != null)
+    .map((d) => new Date(d + "T00:00:00").getTime())
+    .sort((a, b) => a - b);
+  if (dates.length < 2) return false;
+  const spanDays = (dates[dates.length - 1] - dates[0]) / 86_400_000;
+  return spanDays > 7;
+}
+
+/** Groups a flat lineup by ISO date string. */
+export function groupLineupByDay<T extends { day: string | null }>(
+  lineup: T[],
+): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const entry of lineup) {
+    const key = entry.day ?? "TBD";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(entry);
+  }
+  return map;
+}

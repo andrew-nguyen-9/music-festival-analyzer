@@ -17,6 +17,11 @@
   --surface-elevated: #141414;
   --text: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.55);
+
+  /* Upcoming / TBD festival state */
+  --upcoming-light: #a78bfa;
+  --upcoming:       #8b5cf6;
+  --upcoming-dark:  #6d28d9;
 }
 
 html {
@@ -93,8 +98,8 @@ h3,
   position: fixed;
   top: 0;
   left: 0;
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   border: 1.5px solid #fff;
   border-radius: 9999px;
   pointer-events: none;
@@ -105,8 +110,8 @@ h3,
   will-change: transform;
 }
 .cursor-ring--grow {
-  width: 56px;
-  height: 56px;
+  width: 42px;
+  height: 42px;
   background-color: rgba(255, 255, 255, 0.12);
 }
 body.cursor-none,

@@ -46,12 +46,12 @@ def get_spotify() -> spotipy.Spotify:
     return spotipy.Spotify(auth_manager=auth)
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
-def fetch_deezer_image(artist_name: str) -> str | None:
-    """
-    Free, no-auth fallback for artist photos when Spotify has none.
-    Deezer's public API returns picture_xl (1000x1000).
-    """
+import math
+
+_SPOTIFY_UNAVAILABLE = False  # set True after first 403 to skip remaining Spotify calls
+
+
+def _deezer_search(artist_name: str) -> dict | None:
     try:
         resp = requests.get(
             "https://api.deezer.com/search/artist",
@@ -62,65 +62,115 @@ def fetch_deezer_image(artist_name: str) -> str | None:
         items = resp.json().get("data", [])
         if not items:
             return None
-        pic = items[0].get("picture_xl") or items[0].get("picture_big")
-        # Deezer returns a blank silhouette placeholder for unknown artists;
-        # those URLs contain "/artist//" — skip them.
-        if pic and "/artist//" not in pic:
-            return pic
-        return None
+        item = items[0]
+        pic = item.get("picture_xl") or item.get("picture_big")
+        if pic and "/artist//" in pic:
+            pic = None
+        return {"id": item["id"], "name": item["name"], "picture": pic, "nb_fan": item.get("nb_fan", 0)}
     except Exception as e:
-        log.warning(f"Deezer lookup failed for {artist_name}: {e}")
+        log.warning(f"Deezer search failed for {artist_name}: {e}")
         return None
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
-def enrich_from_spotify(sp: spotipy.Spotify, artist_name: str) -> dict | None:
+def fetch_deezer_image(artist_name: str) -> str | None:
+    result = _deezer_search(artist_name)
+    return result["picture"] if result else None
+
+
+def enrich_from_deezer(artist_name: str) -> dict | None:
     """
-    Searches Spotify for an artist by name, returns enrichment payload.
+    Primary enrichment when Spotify is unavailable.
+    Returns image_url + a popularity proxy derived from fan count (0-100).
     """
-    results = sp.search(q=f"artist:{artist_name}", type="artist", limit=1)
-    items = results.get("artists", {}).get("items", [])
-    if not items:
+    result = _deezer_search(artist_name)
+    if not result:
         return None
-
-    a = items[0]
-    top_tracks = sp.artist_top_tracks(a["id"], country="US").get("tracks", [])
-    preview_url = next((t["preview_url"] for t in top_tracks if t.get("preview_url")), None)
-
-    # Spotify photo first; fall back to Deezer's free no-auth image if missing.
-    image_url = a["images"][0]["url"] if a.get("images") else None
-    if not image_url:
-        image_url = fetch_deezer_image(artist_name)
-
+    nb_fan = result.get("nb_fan", 0)
+    # Log-scale fan count → 0-100 popularity proxy (10M fans ≈ 100)
+    popularity = min(100, int(math.log10(max(1, nb_fan)) / math.log10(10_000_000) * 100))
     return {
-        "spotify_id": a["id"],
-        "spotify_url": a["external_urls"].get("spotify"),
-        "spotify_followers": a["followers"]["total"],
-        "spotify_popularity": a["popularity"],
-        "genres": a.get("genres", []),
-        "image_url": image_url,
-        "preview_url": preview_url,
+        "image_url": result.get("picture"),
+        "spotify_popularity": popularity,
     }
 
 
+def enrich_from_spotify(sp: spotipy.Spotify, artist_name: str) -> dict | None:
+    """
+    Searches Spotify for an artist by name. Returns None if Spotify is
+    unavailable (403) so the caller can fall back to Deezer.
+    """
+    global _SPOTIFY_UNAVAILABLE
+    if _SPOTIFY_UNAVAILABLE:
+        return None
+    try:
+        results = sp.search(q=f"artist:{artist_name}", type="artist", limit=1)
+        items = results.get("artists", {}).get("items", [])
+        if not items:
+            return None
+
+        a = items[0]
+        top_tracks = sp.artist_top_tracks(a["id"], country="US").get("tracks", [])
+        preview_url = next((t["preview_url"] for t in top_tracks if t.get("preview_url")), None)
+
+        image_url = a["images"][0]["url"] if a.get("images") else fetch_deezer_image(artist_name)
+
+        return {
+            "spotify_id": a["id"],
+            "spotify_url": a["external_urls"].get("spotify"),
+            "spotify_followers": a["followers"]["total"],
+            "spotify_popularity": a["popularity"],
+            "genres": a.get("genres", []),
+            "image_url": image_url,
+            "preview_url": preview_url,
+        }
+    except Exception as e:
+        msg = str(e)
+        if "403" in msg and "premium" in msg.lower():
+            _SPOTIFY_UNAVAILABLE = True
+            log.warning("Spotify 403 — switching to Deezer for remaining artists")
+        else:
+            log.warning(f"Spotify lookup failed for {artist_name}: {e}")
+        return None
+
+
 def enrich_artists(supabase: Client, sp: spotipy.Spotify, artists: list[dict]) -> None:
-    for artist in track(artists, description="Enriching artists via Spotify..."):
+    spotify_ok = 0
+    deezer_ok = 0
+    skipped = 0
+
+    for artist in track(artists, description="Enriching artists..."):
         name = artist["name"]
+
         enrichment = enrich_from_spotify(sp, name)
+        source = "spotify"
 
         if not enrichment:
-            console.log(f"[yellow]No Spotify match for: {name}")
+            enrichment = enrich_from_deezer(name)
+            source = "deezer"
+
+        if not enrichment:
+            console.log(f"[yellow]No data for: {name}")
+            skipped += 1
             continue
 
         enrichment["updated_at"] = "now()"
 
         try:
             supabase.table("artists").update(enrichment).eq("id", artist["id"]).execute()
-            console.log(f"[green]Enriched: {name} (pop: {enrichment['spotify_popularity']})")
+            pop = enrichment.get("spotify_popularity", "?")
+            if source == "spotify":
+                spotify_ok += 1
+            else:
+                deezer_ok += 1
+                console.log(f"[dim]Deezer: {name} (pop~{pop})")
         except Exception as e:
             log.error(f"Failed to update {name}: {e}")
+            skipped += 1
 
-        time.sleep(0.1)  # Spotify rate limit buffer
+        time.sleep(0.05)
+
+    console.log(f"[green]Enriched {spotify_ok} via Spotify, {deezer_ok} via Deezer, {skipped} skipped")
 
 
 def get_artists_to_enrich(supabase: Client, festival_slug: str | None = None, year: int | None = None) -> list[dict]:

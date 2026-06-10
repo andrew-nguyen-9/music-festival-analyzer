@@ -46,17 +46,29 @@ export async function getFestivals(): Promise<Festival[]> {
 export async function getFeaturedFestivals(limit = 6): Promise<Festival[]> {
   const sb = getSupabase();
   if (!sb) return [];
+  const today = new Date().toISOString().slice(0, 10);
   try {
     const { data, error } = await sb
       .from("festivals")
       .select("*")
+      .eq("is_active", true)
       .contains("tags", ["flagship"])
+      .gte("start_date", today)
+      .order("start_date", { ascending: true })
       .limit(limit);
     if (error) throw error;
     const featured = (data as Festival[]) ?? [];
     if (featured.length > 0) return featured;
-    // Fallback: no flagship tags yet — just return the first N.
-    return (await getFestivals()).slice(0, limit);
+    // Fallback: flagship tag not set yet — return next N upcoming festivals.
+    const { data: upcoming, error: e2 } = await sb
+      .from("festivals")
+      .select("*")
+      .eq("is_active", true)
+      .gte("start_date", today)
+      .order("start_date", { ascending: true })
+      .limit(limit);
+    if (e2) throw e2;
+    return (upcoming as Festival[]) ?? [];
   } catch (e) {
     warn("getFeaturedFestivals", e);
     return [];

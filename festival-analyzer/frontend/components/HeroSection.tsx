@@ -15,7 +15,7 @@ const HERO_IMAGE =
 export default function HeroSection() {
   const reduce = useReducedMotion();
   return (
-    <section className="relative flex min-h-[92vh] flex-col justify-end overflow-hidden px-5 pb-16 pt-32 md:px-8">
+    <section className="relative flex min-h-[92vh] flex-col justify-end overflow-hidden pb-16 pt-32">
       {/* Full-bleed background photo */}
       <Image
         src={HERO_IMAGE}
@@ -36,30 +36,33 @@ export default function HeroSection() {
         aria-hidden
       />
 
-      <p className="mb-5 text-label uppercase tracking-[0.22em] text-white/80">
-        US Music Festivals · Lineup Intelligence
-      </p>
-      <h1 className="max-w-[14ch] text-display-xl text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
-        {WORDS.map((w, i) => (
-          <motion.span
-            key={w}
-            className="mr-[0.25em] inline-block"
-            initial={reduce ? false : { opacity: 0, y: "0.4em" }}
-            animate={reduce ? {} : { opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: 0.15 * i,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-          >
-            {w === "Festival" ? <span className="text-accent">{w}</span> : w}
-          </motion.span>
-        ))}
-      </h1>
-      <p className="mt-6 max-w-xl text-body-lg text-white/85 drop-shadow-[0_1px_12px_rgba(0,0,0,0.5)]">
-        Every lineup, artist, and moment — from Lollapalooza to 200+ festivals
-        across the country. Search by artist, genre, city, or vibe.
-      </p>
+      {/* Content constrained to max-w-wide, matching all other page sections */}
+      <div className="mx-auto w-full max-w-wide px-5 md:px-8">
+        <p className="mb-5 text-label uppercase tracking-[0.22em] text-white/80">
+          US Music Festivals · Lineup Intelligence
+        </p>
+        <h1 className="max-w-[14ch] text-display-xl text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
+          {WORDS.map((w, i) => (
+            <motion.span
+              key={w}
+              className="mr-[0.25em] inline-block"
+              initial={reduce ? false : { opacity: 0, y: "0.4em" }}
+              animate={reduce ? {} : { opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.8,
+                delay: 0.15 * i,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              {w === "Festival" ? <span className="text-accent">{w}</span> : w}
+            </motion.span>
+          ))}
+        </h1>
+        <p className="mt-6 max-w-xl text-body-lg text-white/85 drop-shadow-[0_1px_12px_rgba(0,0,0,0.5)]">
+          Every lineup, artist, and moment — from Lollapalooza to 200+ festivals
+          across the country. Search by artist, genre, city, or vibe.
+        </p>
+      </div>
     </section>
   );
 }

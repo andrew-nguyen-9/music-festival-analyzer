@@ -12,15 +12,23 @@ interface Note {
   rotate: number;
 }
 
-// Scattered music glyphs in the festival palette.
+// ♫ and ♩ only — matches the visual simplicity of the app's typography.
 const NOTES: Note[] = [
-  { glyph: "♪", color: "#FF4500", size: 5.5, top: "18%", left: "16%", rotate: -12 },
-  { glyph: "♫", color: "#00D4FF", size: 7, top: "30%", left: "70%", rotate: 8 },
-  { glyph: "♩", color: "#7B2FBE", size: 4.5, top: "60%", left: "24%", rotate: 14 },
-  { glyph: "♬", color: "#00A878", size: 6.5, top: "66%", left: "62%", rotate: -8 },
-  { glyph: "𝄞", color: "#FF007F", size: 8, top: "12%", left: "46%", rotate: 4 },
-  { glyph: "♭", color: "#E63946", size: 4, top: "48%", left: "84%", rotate: -18 },
-  { glyph: "♯", color: "#FF7A45", size: 4, top: "78%", left: "40%", rotate: 10 },
+  { glyph: "♫", color: "#FF4500", size: 7,   top: "8%",  left: "12%", rotate: -12 },
+  { glyph: "♩", color: "#8B5CF6", size: 4.5, top: "14%", left: "38%", rotate: 8  },
+  { glyph: "♫", color: "#00D4FF", size: 6,   top: "10%", left: "62%", rotate: -6 },
+  { glyph: "♩", color: "#FF7A45", size: 5,   top: "22%", left: "82%", rotate: 14 },
+  { glyph: "♫", color: "#00A878", size: 8,   top: "32%", left: "6%",  rotate: 4  },
+  { glyph: "♩", color: "#FF007F", size: 3.5, top: "38%", left: "52%", rotate: -16 },
+  { glyph: "♫", color: "#A78BFA", size: 5.5, top: "44%", left: "74%", rotate: 10 },
+  { glyph: "♩", color: "#FF4500", size: 6.5, top: "54%", left: "28%", rotate: -8 },
+  { glyph: "♫", color: "#00D4FF", size: 4,   top: "58%", left: "88%", rotate: 6  },
+  { glyph: "♩", color: "#8B5CF6", size: 7,   top: "66%", left: "16%", rotate: -14 },
+  { glyph: "♫", color: "#FF7A45", size: 4.5, top: "70%", left: "46%", rotate: 18 },
+  { glyph: "♩", color: "#00A878", size: 5,   top: "76%", left: "68%", rotate: -4 },
+  { glyph: "♫", color: "#FF007F", size: 6,   top: "82%", left: "8%",  rotate: 10 },
+  { glyph: "♩", color: "#A78BFA", size: 3.5, top: "86%", left: "34%", rotate: -20 },
+  { glyph: "♫", color: "#FF4500", size: 5,   top: "90%", left: "78%", rotate: 8  },
 ];
 
 /**
