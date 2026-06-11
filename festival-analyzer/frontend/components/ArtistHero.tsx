@@ -27,7 +27,10 @@ export default function ArtistHero({ artist }: Props) {
           aria-hidden
         />
       )}
+      {/* Bottom + side gradients blend the image into the page */}
       <div className="hero-scrim absolute inset-0" />
+      <div className="absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-black/70 to-transparent" aria-hidden />
+      <div className="absolute inset-y-0 right-0 w-48 bg-gradient-to-l from-black/70 to-transparent" aria-hidden />
 
       <div className="relative mx-auto w-full max-w-wide px-5 pb-14 pt-32 md:px-8">
         {artist.genres?.length > 0 && (

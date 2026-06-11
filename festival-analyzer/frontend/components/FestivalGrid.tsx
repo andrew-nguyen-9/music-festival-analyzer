@@ -5,7 +5,6 @@ import FestivalCard from "./FestivalCard";
 import EmptyState from "./EmptyState";
 import type { Festival } from "@/lib/types";
 
-// Maps each tag slug → its category for grouping the dropdowns
 const TAG_CATEGORIES: Record<string, "genre" | "format" | "region" | "season"> = {
   "multi-genre": "genre",
   "electronic":  "genre",
@@ -50,6 +49,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   season: "Season",
 };
 
+// Geographic east→west ordering
+const REGION_ORDER = ["northeast", "southeast", "midwest", "mountain", "southwest", "west-coast", "south", "plains"];
+// Chronological season ordering
+const SEASON_ORDER = ["spring", "summer", "fall", "winter"];
+
+function sortOptions(cat: string, opts: string[]): string[] {
+  const order = cat === "region" ? REGION_ORDER : cat === "season" ? SEASON_ORDER : null;
+  if (!order) return [...opts].sort();
+  return [...opts].sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+
 interface Filters {
   genre:  string | null;
   format: string | null;
@@ -65,7 +82,6 @@ export default function FestivalGrid({ festivals }: Props) {
   const [query, setQuery]   = useState("");
   const [filters, setFilters] = useState<Filters>({ genre: null, format: null, region: null, season: null });
 
-  // Build available tag options per category from the actual festival data
   const tagsByCategory = useMemo(() => {
     const cats: Record<string, Set<string>> = { genre: new Set(), format: new Set(), region: new Set(), season: new Set() };
     for (const f of festivals) {
@@ -75,7 +91,7 @@ export default function FestivalGrid({ festivals }: Props) {
       }
     }
     return Object.fromEntries(
-      Object.entries(cats).map(([k, v]) => [k, [...v].sort()])
+      Object.entries(cats).map(([k, v]) => [k, sortOptions(k, [...v])])
     ) as Record<string, string[]>;
   }, [festivals]);
 
@@ -99,6 +115,23 @@ export default function FestivalGrid({ festivals }: Props) {
     });
   }, [festivals, query, filters]);
 
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const sixMonthsAgo = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 6);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const upcoming = useMemo(
+    () => filtered.filter((f) => !f.end_date || f.end_date >= today),
+    [filtered, today],
+  );
+  const recentPast = useMemo(
+    () => filtered.filter((f) => f.end_date && f.end_date < today && f.end_date >= sixMonthsAgo),
+    [filtered, today, sixMonthsAgo],
+  );
+
+  const totalCount = upcoming.length + recentPast.length;
   const activeCount = Object.values(filters).filter(Boolean).length;
 
   function clearFilters() {
@@ -111,7 +144,6 @@ export default function FestivalGrid({ festivals }: Props) {
       {/* Sticky search + filter bar */}
       <div className="sticky top-16 z-30 -mx-5 mb-8 bg-surface/80 px-5 py-4 backdrop-blur md:-mx-8 md:px-8">
         <div className="flex flex-col gap-3">
-          {/* Search input */}
           <div className="relative">
             <SearchIcon />
             <input
@@ -123,7 +155,6 @@ export default function FestivalGrid({ festivals }: Props) {
             />
           </div>
 
-          {/* Dropdown row */}
           <div className="flex flex-wrap items-center gap-2">
             {(["genre", "region", "format", "season"] as const).map((cat) => {
               const options = tagsByCategory[cat] ?? [];
@@ -149,7 +180,7 @@ export default function FestivalGrid({ festivals }: Props) {
             )}
 
             <span className="ml-auto text-label text-white/40">
-              {filtered.length} festival{filtered.length !== 1 ? "s" : ""}
+              {totalCount} festival{totalCount !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
@@ -160,17 +191,41 @@ export default function FestivalGrid({ festivals }: Props) {
           title="No festivals loaded yet"
           hint="Add your Supabase URL + anon key (.env.local) and run the seed SQL — festivals will appear here automatically."
         />
-      ) : filtered.length === 0 ? (
+      ) : totalCount === 0 ? (
         <EmptyState
           title="No matches"
           hint="Try a different search term or clear the active filters."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((f, i) => (
-            <FestivalCard key={f.id} festival={f} priority={i < 3} />
-          ))}
-        </div>
+        <>
+          {upcoming.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {upcoming.map((f, i) => (
+                <FestivalCard key={f.id} festival={f} priority={i < 3} />
+              ))}
+            </div>
+          )}
+
+          {recentPast.length > 0 && (
+            <div className="mt-12">
+              <div className="mb-6 flex items-center gap-4">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="shrink-0 text-label uppercase tracking-widest text-white/30">Past Events</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {recentPast.map((f) => (
+                  <div
+                    key={f.id}
+                    className="opacity-50 grayscale transition-all duration-300 hover:opacity-75 hover:grayscale-0"
+                  >
+                    <FestivalCard festival={f} priority={false} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -220,7 +275,7 @@ function CategoryDropdown({ label, options, value, onChange }: DropdownProps) {
           <button
             onClick={() => { onChange(null); setOpen(false); }}
             className={
-              "w-full px-4 py-2.5 text-left text-label transition-colors " +
+              "w-full px-4 py-2.5 text-left text-label uppercase tracking-wide transition-colors " +
               (!active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5 hover:text-white")
             }
           >

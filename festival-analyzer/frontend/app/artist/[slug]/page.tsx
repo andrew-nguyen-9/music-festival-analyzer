@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import FestivalThemeStyle from "@/components/FestivalThemeStyle";
 import ArtistHero from "@/components/ArtistHero";
 import StreamingWidget from "@/components/StreamingWidget";
+import ArtistDiscography from "@/components/ArtistDiscography";
 import FestivalAppearances from "@/components/FestivalAppearances";
 import { getArtistBySlug, getArtistAppearances } from "@/lib/queries";
 
@@ -51,6 +52,7 @@ export default async function ArtistPage({ params }: PageProps) {
       )}
 
       <StreamingWidget artist={artist} />
+      {artist.spotify_id && <ArtistDiscography spotifyId={artist.spotify_id} artistName={artist.name} />}
       <FestivalAppearances
         appearances={appearances}
         artistName={artist.name}

@@ -11,13 +11,14 @@ interface Props {
 }
 
 export default function LineupByPopularity({ lineup }: Props) {
-  const sorted = [...lineup].sort((a, b) => {
-    if (a.is_headliner !== b.is_headliner) return a.is_headliner ? -1 : 1;
-    return (b.artist.spotify_popularity ?? 0) - (a.artist.spotify_popularity ?? 0);
-  });
+  // When no schedule exists, the 2 most popular artists are headliners
+  const sortedByPop = [...lineup].sort(
+    (a, b) => (b.artist.spotify_popularity ?? 0) - (a.artist.spotify_popularity ?? 0),
+  );
+  const headlinerIds = new Set(sortedByPop.slice(0, 2).map((e) => e.id));
 
-  const headliners = sorted.filter((e) => e.is_headliner);
-  const rest = sorted.filter((e) => !e.is_headliner);
+  const headliners = sortedByPop.slice(0, 2);
+  const rest = sortedByPop.slice(2);
 
   return (
     <section className="mx-auto max-w-wide px-5 py-16 md:px-8">
@@ -85,6 +86,11 @@ function ArtistCard({ entry, large = false }: { entry: LineupEntry; large?: bool
           />
         )}
         <div className="hero-scrim absolute inset-0 opacity-90" />
+        {large && (
+          <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+            Headliner
+          </span>
+        )}
         <div className="absolute inset-x-0 bottom-0 p-3">
           <p className={`font-semibold leading-tight text-white ${large ? "text-display-md" : "text-body-lg"}`}>
             {artist.name}

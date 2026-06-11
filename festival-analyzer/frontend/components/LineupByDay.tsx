@@ -18,6 +18,29 @@ function formatDayLabel(iso: string): string {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+/**
+ * The final act per stage (latest start time) is the headliner.
+ * Stages with only 1 act are skipped.
+ */
+function computeHeadlinerIds(entries: LineupEntry[]): Set<string> {
+  const byStage = new Map<string, LineupEntry[]>();
+  for (const e of entries) {
+    const key = e.stage ?? "__none__";
+    if (!byStage.has(key)) byStage.set(key, []);
+    byStage.get(key)!.push(e);
+  }
+  const ids = new Set<string>();
+  for (const [, acts] of byStage) {
+    const timed = acts.filter((e) => e.set_time_start);
+    if (timed.length < 2) continue;
+    const sorted = [...timed].sort((a, b) =>
+      (b.set_time_start ?? "").localeCompare(a.set_time_start ?? ""),
+    );
+    ids.add(sorted[0].id); // only the closing act
+  }
+  return ids;
+}
+
 function weekendNumber(iso: string, firstDate: string): 1 | 2 {
   const diff = (new Date(iso + "T00:00:00").getTime() - new Date(firstDate + "T00:00:00").getTime()) / 86_400_000;
   return diff < 7 ? 1 : 2;
@@ -68,17 +91,21 @@ export default function LineupByDay({ lineup }: Props) {
     setActiveDay(days[0] ?? "TBD");
   };
 
+  // Sort: popularity first (most-followed acts appear early), tiebreak by time descending
   const dayLineup = useMemo(
     () =>
       [...(dayMap.get(activeDay) ?? [])].sort((a, b) => {
-        if (a.is_headliner !== b.is_headliner) return a.is_headliner ? -1 : 1;
+        const popDiff = (b.artist.spotify_popularity ?? 0) - (a.artist.spotify_popularity ?? 0);
+        if (popDiff !== 0) return popDiff;
         const ta = a.set_time_start ?? "";
         const tb = b.set_time_start ?? "";
-        if (ta && tb) return ta.localeCompare(tb);
-        return (b.artist.spotify_popularity ?? 0) - (a.artist.spotify_popularity ?? 0);
+        if (ta && tb) return tb.localeCompare(ta);
+        return 0;
       }),
     [dayMap, activeDay],
   );
+
+  const headlinerIds = useMemo(() => computeHeadlinerIds(dayMap.get(activeDay) ?? []), [dayMap, activeDay]);
 
   const TabButton = ({
     label,
@@ -134,7 +161,7 @@ export default function LineupByDay({ lineup }: Props) {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {dayLineup.map((entry, i) => (
             <Reveal key={entry.id} delay={Math.min(i * 0.03, 0.4)}>
-              <DayArtistTile entry={entry} />
+              <DayArtistTile entry={entry} isHeadliner={headlinerIds.has(entry.id)} />
             </Reveal>
           ))}
         </div>
@@ -143,7 +170,7 @@ export default function LineupByDay({ lineup }: Props) {
   );
 }
 
-function DayArtistTile({ entry }: { entry: LineupEntry }) {
+function DayArtistTile({ entry, isHeadliner }: { entry: LineupEntry; isHeadliner: boolean }) {
   const { artist } = entry;
   const img = artist.image_url ?? artist.header_image_url;
 
@@ -169,7 +196,7 @@ function DayArtistTile({ entry }: { entry: LineupEntry }) {
           />
         )}
         <div className="hero-scrim absolute inset-0 opacity-90" />
-        {entry.is_headliner && (
+        {isHeadliner && (
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
             Headliner
           </span>
@@ -180,7 +207,7 @@ function DayArtistTile({ entry }: { entry: LineupEntry }) {
           </span>
         )}
         <div className="absolute inset-x-0 bottom-0 p-3">
-          <p className={`font-semibold leading-tight text-white ${entry.is_headliner ? "text-display-md" : "text-body-lg"}`}>
+          <p className={`font-semibold leading-tight text-white ${isHeadliner ? "text-display-md" : "text-body-lg"}`}>
             {artist.name}
           </p>
           {artist.genres?.length > 0 && (

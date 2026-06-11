@@ -3,10 +3,7 @@ import type { Metadata } from "next";
 import FestivalThemeStyle from "@/components/FestivalThemeStyle";
 import FestivalHero from "@/components/FestivalHero";
 import FestivalPassedBanner from "@/components/FestivalPassedBanner";
-import FestivalTBD from "@/components/FestivalTBD";
-import LineupGrid from "@/components/LineupGrid";
-import LineupByPopularity from "@/components/LineupByPopularity";
-import LineupByDay from "@/components/LineupByDay";
+import FestivalPageTabs from "@/components/FestivalPageTabs";
 import MediaGallery from "@/components/MediaGallery";
 import SocialFeed from "@/components/SocialFeed";
 import FunFactsWidget from "@/components/FunFactsWidget";
@@ -64,11 +61,7 @@ export default async function FestivalPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* Lineup section — varies by state */}
-        {state === "tbd" && <FestivalTBD festival={festival} />}
-        {state === "lineup" && <LineupByPopularity lineup={lineup} />}
-        {state === "schedule" && <LineupByDay lineup={lineup} />}
-        {state === "passed" && <LineupGrid lineup={lineup} />}
+        <FestivalPageTabs festival={festival} lineup={lineup} state={state} />
 
         <MediaGallery media={media} />
         <SocialFeed posts={social} />
