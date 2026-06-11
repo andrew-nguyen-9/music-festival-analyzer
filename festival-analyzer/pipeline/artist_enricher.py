@@ -220,14 +220,100 @@ def upsert_artist(supabase: Client, sp: spotipy.Spotify, name: str) -> None:
         console.log(f"[yellow]Created artist with no Spotify data: {name}")
 
 
+def list_artists(supabase: Client, orphans_only: bool = False) -> None:
+    """List artists in the DB, optionally only those with no lineup entries."""
+    result = supabase.table("artists").select("id, slug, name, spotify_id, spotify_popularity, created_at").order("name").execute()
+    artists = result.data
+
+    if orphans_only:
+        lineup_result = supabase.table("lineups").select("artist_id").execute()
+        linked_ids = {row["artist_id"] for row in lineup_result.data}
+        artists = [a for a in artists if a["id"] not in linked_ids]
+        console.log(f"[yellow]Orphan artists (no lineup entries): {len(artists)}")
+    else:
+        console.log(f"[cyan]Total artists in DB: {len(artists)}")
+
+    for a in artists:
+        sp = "[green]✓[/green]" if a.get("spotify_id") else "[red]✗[/red]"
+        pop = a.get("spotify_popularity") or "?"
+        console.log(f"  {sp} {a['name']:40s} | slug: {a['slug']:40s} | pop: {pop}")
+
+
+def remove_artist(supabase: Client, slug: str, force: bool = False) -> None:
+    """Remove an artist (and their lineup entries) by slug."""
+    result = supabase.table("artists").select("id, name").eq("slug", slug).execute()
+    if not result.data:
+        console.log(f"[red]Artist not found: {slug}")
+        return
+    artist = result.data[0]
+
+    lineup = supabase.table("lineups").select("id").eq("artist_id", artist["id"]).execute()
+    n_lineup = len(lineup.data)
+
+    if not force:
+        console.log(f"[yellow]Will delete artist '{artist['name']}' and {n_lineup} lineup entries. Pass --force to confirm.")
+        return
+
+    supabase.table("lineups").delete().eq("artist_id", artist["id"]).execute()
+    supabase.table("artists").delete().eq("id", artist["id"]).execute()
+    console.log(f"[green]Deleted '{artist['name']}' + {n_lineup} lineup entries.")
+
+
+def clean_orphans(supabase: Client, force: bool = False) -> None:
+    """Remove artists that have no lineup entries (likely test/stray records)."""
+    all_artists = supabase.table("artists").select("id, name, slug").execute().data
+    lineup_result = supabase.table("lineups").select("artist_id").execute()
+    linked_ids = {row["artist_id"] for row in lineup_result.data}
+
+    orphans = [a for a in all_artists if a["id"] not in linked_ids]
+    if not orphans:
+        console.log("[green]No orphan artists found.")
+        return
+
+    console.log(f"[yellow]Found {len(orphans)} orphan artists:")
+    for a in orphans:
+        console.log(f"  - {a['name']} ({a['slug']})")
+
+    if not force:
+        console.log("[dim]Pass --force to delete them.")
+        return
+
+    for a in orphans:
+        supabase.table("artists").delete().eq("id", a["id"]).execute()
+    console.log(f"[green]Deleted {len(orphans)} orphan artists.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Enrich artists via Spotify")
     parser.add_argument("--artist", type=str, help="Enrich a single artist by name")
     parser.add_argument("--festival", type=str, help="Enrich all artists in this festival slug")
     parser.add_argument("--year", type=int, help="Filter by lineup year (use with --festival)")
+    # DB management
+    parser.add_argument("--list", action="store_true", help="List all artists in the DB")
+    parser.add_argument("--list-orphans", action="store_true", help="List artists with no lineup entries")
+    parser.add_argument("--remove", type=str, metavar="SLUG", help="Remove artist by slug (use with --force)")
+    parser.add_argument("--clean-orphans", action="store_true", help="Remove all orphan artists (use with --force)")
+    parser.add_argument("--force", action="store_true", help="Actually execute destructive operations")
     args = parser.parse_args()
 
     supabase = get_supabase()
+
+    if args.list:
+        list_artists(supabase)
+        return
+
+    if args.list_orphans:
+        list_artists(supabase, orphans_only=True)
+        return
+
+    if args.remove:
+        remove_artist(supabase, args.remove, force=args.force)
+        return
+
+    if args.clean_orphans:
+        clean_orphans(supabase, force=args.force)
+        return
+
     sp = get_spotify()
 
     if args.artist:

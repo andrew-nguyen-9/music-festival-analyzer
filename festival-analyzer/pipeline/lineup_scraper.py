@@ -409,6 +409,7 @@ def process_festival(
     year: int,
     source: str | None,
     dry_run: bool,
+    replace: bool = False,
 ) -> None:
     console.log(f"\n[bold cyan]{slug}")
 
@@ -458,6 +459,12 @@ def process_festival(
     if not festival_id:
         return
 
+    if replace:
+        deleted = supabase.table("lineups").delete().eq("festival_id", festival_id).eq("year", year).execute()
+        n_deleted = len(deleted.data) if deleted.data else 0
+        if n_deleted:
+            console.log(f"  [dim]Cleared {n_deleted} existing lineup entries")
+
     n = write_lineup(supabase, festival_id, year, days, dry_run=False)
     console.log(f"  [bold green]✓ {n} lineup entries written ({used_source})")
 
@@ -468,6 +475,8 @@ def main():
     parser.add_argument("--year", type=int, default=date.today().year)
     parser.add_argument("--source", choices=["ticketmaster", "setlistfm"], help="Force a specific source")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, no DB writes")
+    parser.add_argument("--replace", action="store_true",
+                        help="Clear existing lineup entries before writing (removes stale/test data)")
     args = parser.parse_args()
 
     console.log(f"[bold]Festival Lineup Scraper — {args.year}{' (DRY RUN)' if args.dry_run else ''}")
@@ -486,7 +495,8 @@ def main():
 
     for slug, cfg in track(targets.items(), description="Processing festivals..."):
         try:
-            process_festival(supabase, slug, cfg, args.year, args.source, args.dry_run)
+            process_festival(supabase, slug, cfg, args.year, args.source, args.dry_run,
+                             replace=args.replace)
         except Exception as e:
             console.log(f"  [red]Error processing {slug}: {e}")
         time.sleep(0.2)  # TM rate limit buffer

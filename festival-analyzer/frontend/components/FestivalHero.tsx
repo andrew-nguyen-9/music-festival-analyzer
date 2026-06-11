@@ -19,7 +19,13 @@ export default function FestivalHero({ festival }: Props) {
           fill
           priority
           sizes="100vw"
-          className="object-cover"
+          className="object-cover object-top"
+        />
+      ) : festival.vector_art ? (
+        <div
+          className="absolute inset-0 [&>svg]:h-full [&>svg]:w-full [&>svg]:object-cover"
+          dangerouslySetInnerHTML={{ __html: festival.vector_art }}
+          aria-hidden
         />
       ) : (
         <div
@@ -41,6 +47,9 @@ export default function FestivalHero({ festival }: Props) {
         />
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <span className="text-body-lg text-white">
+            {festival.dates_estimated && (
+              <span title="Estimated date — not yet officially announced" className="mr-1 text-white/50">~</span>
+            )}
             {formatDateRange(festival.start_date, festival.end_date)}
           </span>
           {festival.website_url && (
