@@ -1,0 +1,377 @@
+{
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/migrations/20260610_festival_dates_and_art.sql": {
+    "mtime": 1781153362.2456074,
+    "ast_hash": "c92800a28f3fe2291e9b5cd729dec8ad",
+    "semantic_hash": "c92800a28f3fe2291e9b5cd729dec8ad"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/migrations/20260611_cleanup_test_lineup.sql": {
+    "mtime": 1781193794.7072983,
+    "ast_hash": "5bad421d5a648d2a318aa7695f47aaff",
+    "semantic_hash": "5bad421d5a648d2a318aa7695f47aaff"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/schema.sql": {
+    "mtime": 1781014334.3505268,
+    "ast_hash": "f0441fbd15c33a0c595cf42d4f93ae20",
+    "semantic_hash": "f0441fbd15c33a0c595cf42d4f93ae20"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/seed_lolla.sql": {
+    "mtime": 1781014334.3519044,
+    "ast_hash": "e982016764158c8895db309e20cdb617",
+    "semantic_hash": "e982016764158c8895db309e20cdb617"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/setup_supabase.sql": {
+    "mtime": 1781014334.3534398,
+    "ast_hash": "69f6cf0d293abea61289c7be3af779a6",
+    "semantic_hash": "69f6cf0d293abea61289c7be3af779a6"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/db/update_lolla_hero.sql": {
+    "mtime": 1781014334.3546069,
+    "ast_hash": "6c7f30d64b21f93bf1ad79d8ea6fcf74",
+    "semantic_hash": "6c7f30d64b21f93bf1ad79d8ea6fcf74"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/about/page.tsx": {
+    "mtime": 1781014334.3004537,
+    "ast_hash": "9b5d4206ba8e7cc0cd74464d512ce8ab",
+    "semantic_hash": "9b5d4206ba8e7cc0cd74464d512ce8ab"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/artist/[slug]/page.tsx": {
+    "mtime": 1781186272.0458186,
+    "ast_hash": "b900330e1f52a5fdb38499b954571a80",
+    "semantic_hash": "b900330e1f52a5fdb38499b954571a80"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/error.tsx": {
+    "mtime": 1781014334.2989266,
+    "ast_hash": "87afab90556eb4c3a41e9409f1cdc92e",
+    "semantic_hash": "87afab90556eb4c3a41e9409f1cdc92e"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/festival/[slug]/page.tsx": {
+    "mtime": 1781186250.44733,
+    "ast_hash": "7e730037247acee63cd848c4ec33f558",
+    "semantic_hash": "7e730037247acee63cd848c4ec33f558"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/global-error.tsx": {
+    "mtime": 1781014334.299573,
+    "ast_hash": "d2123d0cfbcdd74bb19e78f9e744f4d9",
+    "semantic_hash": "d2123d0cfbcdd74bb19e78f9e744f4d9"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/layout.tsx": {
+    "mtime": 1781014334.2976873,
+    "ast_hash": "3a368254ec3fd95b1e389bc9d080e941",
+    "semantic_hash": "3a368254ec3fd95b1e389bc9d080e941"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/not-found.tsx": {
+    "mtime": 1781014334.2970772,
+    "ast_hash": "69c5b2c6c73c1f960382b2f52dd31076",
+    "semantic_hash": "69c5b2c6c73c1f960382b2f52dd31076"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/app/page.tsx": {
+    "mtime": 1781186127.4367075,
+    "ast_hash": "c04bc1aa54a802a659dd76b7d6ed3e6b",
+    "semantic_hash": "c04bc1aa54a802a659dd76b7d6ed3e6b"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/ArtistDiscography.tsx": {
+    "mtime": 1781186285.6792235,
+    "ast_hash": "ae09ed4baac0e9aa36ec6b12de3732a8",
+    "semantic_hash": "ae09ed4baac0e9aa36ec6b12de3732a8"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/ArtistHero.tsx": {
+    "mtime": 1781186259.640249,
+    "ast_hash": "f815d35b6b92bf8d2532f089bf5564c5",
+    "semantic_hash": "f815d35b6b92bf8d2532f089bf5564c5"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/CustomCursor.tsx": {
+    "mtime": 1781014334.3133066,
+    "ast_hash": "c26009778afd9708c7de07343cd999b9",
+    "semantic_hash": "c26009778afd9708c7de07343cd999b9"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/DraggableNotes.tsx": {
+    "mtime": 1781046597.6188567,
+    "ast_hash": "2cd1ee46fba744b8e4dc65a0ead0af46",
+    "semantic_hash": "2cd1ee46fba744b8e4dc65a0ead0af46"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/EmptyState.tsx": {
+    "mtime": 1781014334.3025525,
+    "ast_hash": "93a72b41727f517908fecfe4522f1957",
+    "semantic_hash": "93a72b41727f517908fecfe4522f1957"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FeaturedFestivals.tsx": {
+    "mtime": 1781186122.5093668,
+    "ast_hash": "8f5b5ccb2bd87fd0b4b250eb07c8be41",
+    "semantic_hash": "8f5b5ccb2bd87fd0b4b250eb07c8be41"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalAppearances.tsx": {
+    "mtime": 1781014334.311474,
+    "ast_hash": "5c6a807f67c74fc211b89c5f31f9b75d",
+    "semantic_hash": "5c6a807f67c74fc211b89c5f31f9b75d"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalCard.tsx": {
+    "mtime": 1781153472.247879,
+    "ast_hash": "a15f7498f8b83f420fe75f6af7b944da",
+    "semantic_hash": "a15f7498f8b83f420fe75f6af7b944da"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalGrid.tsx": {
+    "mtime": 1781186093.9692,
+    "ast_hash": "8b8245fea530206780675e0435f927b4",
+    "semantic_hash": "8b8245fea530206780675e0435f927b4"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalHero.tsx": {
+    "mtime": 1781153483.9840214,
+    "ast_hash": "0af1d24f7d571a66d5fbe433546f004e",
+    "semantic_hash": "0af1d24f7d571a66d5fbe433546f004e"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalPageTabs.tsx": {
+    "mtime": 1781194966.869397,
+    "ast_hash": "d3bf26a0cbd9625d05c07653989aef60",
+    "semantic_hash": "d3bf26a0cbd9625d05c07653989aef60"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalPassedBanner.tsx": {
+    "mtime": 1781046804.195349,
+    "ast_hash": "35d83edfa160c1085a743299552b5cc5",
+    "semantic_hash": "35d83edfa160c1085a743299552b5cc5"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalTBD.tsx": {
+    "mtime": 1781046815.3072248,
+    "ast_hash": "9ee85b85112156b0f685100bae48caf1",
+    "semantic_hash": "9ee85b85112156b0f685100bae48caf1"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FestivalThemeStyle.tsx": {
+    "mtime": 1781014334.301961,
+    "ast_hash": "1565d260ec896e3adcef7347755286ab",
+    "semantic_hash": "1565d260ec896e3adcef7347755286ab"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/FunFactsWidget.tsx": {
+    "mtime": 1781014334.309181,
+    "ast_hash": "935014caaaa6feb2158802f7f1caf7c7",
+    "semantic_hash": "935014caaaa6feb2158802f7f1caf7c7"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/HeroSection.tsx": {
+    "mtime": 1781046568.8383374,
+    "ast_hash": "d0572eceb820a195f262a4f05e6efbaa",
+    "semantic_hash": "d0572eceb820a195f262a4f05e6efbaa"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/LineupAnalysis.tsx": {
+    "mtime": 1781195038.7865863,
+    "ast_hash": "266ee6c7b6ac365cbf35b602ce0d2aa2",
+    "semantic_hash": "266ee6c7b6ac365cbf35b602ce0d2aa2"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/LineupByDay.tsx": {
+    "mtime": 1781194954.142612,
+    "ast_hash": "722aa3577def534a6d4560a210e85baf",
+    "semantic_hash": "722aa3577def534a6d4560a210e85baf"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/LineupByPopularity.tsx": {
+    "mtime": 1781194935.0961387,
+    "ast_hash": "1b73dd75d9259b5830e89c6bccff3f6e",
+    "semantic_hash": "1b73dd75d9259b5830e89c6bccff3f6e"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/LineupGrid.tsx": {
+    "mtime": 1781014334.3067455,
+    "ast_hash": "8b902364f739e8b01ec30b7b024e10f3",
+    "semantic_hash": "8b902364f739e8b01ec30b7b024e10f3"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/MediaGallery.tsx": {
+    "mtime": 1781014334.3079004,
+    "ast_hash": "3713d2dc035a7116b696c64f38842cf5",
+    "semantic_hash": "3713d2dc035a7116b696c64f38842cf5"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/MusicPlayerToggle.tsx": {
+    "mtime": 1781014334.307323,
+    "ast_hash": "b3d8c7b6c356ced10208eab4d2072117",
+    "semantic_hash": "b3d8c7b6c356ced10208eab4d2072117"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/Nav.tsx": {
+    "mtime": 1781014334.303202,
+    "ast_hash": "e2cf7ce2333a7894d3fadac7013d8391",
+    "semantic_hash": "e2cf7ce2333a7894d3fadac7013d8391"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/RelatedFestivals.tsx": {
+    "mtime": 1781014334.3097868,
+    "ast_hash": "2fd79265c735210520ed9d450d410583",
+    "semantic_hash": "2fd79265c735210520ed9d450d410583"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/Reveal.tsx": {
+    "mtime": 1781014334.3120716,
+    "ast_hash": "fa113a65d4f05f0a6c54eabed6b30e60",
+    "semantic_hash": "fa113a65d4f05f0a6c54eabed6b30e60"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/ScheduleBoard.tsx": {
+    "mtime": 1781186167.4949653,
+    "ast_hash": "939f86e7b05a968734f38943bc137445",
+    "semantic_hash": "939f86e7b05a968734f38943bc137445"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/ScrollScaleTitle.tsx": {
+    "mtime": 1781014334.313885,
+    "ast_hash": "39eec7d9a2736a68a3ba481f8c68408e",
+    "semantic_hash": "39eec7d9a2736a68a3ba481f8c68408e"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/SocialFeed.tsx": {
+    "mtime": 1781014334.308458,
+    "ast_hash": "c2ef490cd22da0345570e74603e939a4",
+    "semantic_hash": "c2ef490cd22da0345570e74603e939a4"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/components/StreamingWidget.tsx": {
+    "mtime": 1781014334.3108869,
+    "ast_hash": "2e56f897db624feab7da28e48d57d822",
+    "semantic_hash": "2e56f897db624feab7da28e48d57d822"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/lib/festival-theme.ts": {
+    "mtime": 1781014334.3157957,
+    "ast_hash": "b6b45d0afb6e5510e556befd8f3b05d9",
+    "semantic_hash": "b6b45d0afb6e5510e556befd8f3b05d9"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/lib/format.ts": {
+    "mtime": 1781046795.8884048,
+    "ast_hash": "45f0f6baf238663adb0bc7fb7b024fd6",
+    "semantic_hash": "45f0f6baf238663adb0bc7fb7b024fd6"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/lib/queries.ts": {
+    "mtime": 1781046611.301676,
+    "ast_hash": "9394afb520dd15611c57d2aa125478b6",
+    "semantic_hash": "9394afb520dd15611c57d2aa125478b6"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/lib/supabase.ts": {
+    "mtime": 1781014334.3168986,
+    "ast_hash": "7f7ab972c245a00ff2cb91393d0823b2",
+    "semantic_hash": "7f7ab972c245a00ff2cb91393d0823b2"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/lib/types.ts": {
+    "mtime": 1781153458.0394933,
+    "ast_hash": "354eded2b5fca7ee92eca6a4beb4f1b3",
+    "semantic_hash": "354eded2b5fca7ee92eca6a4beb4f1b3"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/next-env.d.ts": {
+    "mtime": 1781014334.3282144,
+    "ast_hash": "ba64ff7d54714a8f64db89b1003207d8",
+    "semantic_hash": "ba64ff7d54714a8f64db89b1003207d8"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/next.config.mjs": {
+    "mtime": 1781155320.9645379,
+    "ast_hash": "284e655548103b83e2836e3ae405cfdf",
+    "semantic_hash": "284e655548103b83e2836e3ae405cfdf"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/package.json": {
+    "mtime": 1781014334.3188736,
+    "ast_hash": "2a90f4ceda6b65db3cd73da3ace51069",
+    "semantic_hash": "2a90f4ceda6b65db3cd73da3ace51069"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/postcss.config.mjs": {
+    "mtime": 1781014334.3260574,
+    "ast_hash": "c56b5f3c12f777a86e2513f45daab56a",
+    "semantic_hash": "c56b5f3c12f777a86e2513f45daab56a"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/tailwind.config.ts": {
+    "mtime": 1781014334.3270187,
+    "ast_hash": "05a89112fcaad0c71be09bbc0f39d58a",
+    "semantic_hash": "05a89112fcaad0c71be09bbc0f39d58a"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/frontend/tsconfig.json": {
+    "mtime": 1781014334.3238916,
+    "ast_hash": "8db808dd2d31dbd2a928c3f4e9e34e4a",
+    "semantic_hash": "8db808dd2d31dbd2a928c3f4e9e34e4a"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/artist_enricher.py": {
+    "mtime": 1781153172.6730626,
+    "ast_hash": "445fb856dfea86c52921dbadd42ece2c",
+    "semantic_hash": "445fb856dfea86c52921dbadd42ece2c"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/festival_art_generator.py": {
+    "mtime": 1781156787.1306834,
+    "ast_hash": "6d8e1209c731b0456862af1d30528ec8",
+    "semantic_hash": "6d8e1209c731b0456862af1d30528ec8"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/festival_dates_enricher.py": {
+    "mtime": 1781153238.9043243,
+    "ast_hash": "6897ab78a42d0b114fb0546f8d414c9a",
+    "semantic_hash": "6897ab78a42d0b114fb0546f8d414c9a"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/festival_scraper.py": {
+    "mtime": 1781156801.790567,
+    "ast_hash": "c6f7c41ef743fb843640df6fd1c98628",
+    "semantic_hash": "c6f7c41ef743fb843640df6fd1c98628"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/fun_facts_generator.py": {
+    "mtime": 1781014334.3417432,
+    "ast_hash": "cf8e515282de9a15d85e5a5048f2a389",
+    "semantic_hash": "cf8e515282de9a15d85e5a5048f2a389"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/lineup_manager.py": {
+    "mtime": 1781155452.0387797,
+    "ast_hash": "c21240c5b7c9c8176bceb7bc0b640891",
+    "semantic_hash": "c21240c5b7c9c8176bceb7bc0b640891"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/lineup_scraper.py": {
+    "mtime": 1781155471.6849563,
+    "ast_hash": "4c579ebf1f57a8a2788693c0d3352eb5",
+    "semantic_hash": "4c579ebf1f57a8a2788693c0d3352eb5"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/lolla_schedule_seeder.py": {
+    "mtime": 1781193788.2620695,
+    "ast_hash": "276a0761e843f5e0930f13331bee1d58",
+    "semantic_hash": "276a0761e843f5e0930f13331bee1d58"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/media_fetcher.py": {
+    "mtime": 1781014334.343566,
+    "ast_hash": "9d8b4135653c7e5707da1c5ad0d06662",
+    "semantic_hash": "9d8b4135653c7e5707da1c5ad0d06662"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/schedule_scraper.py": {
+    "mtime": 1781153302.3984244,
+    "ast_hash": "355af0441893b678f903f68ea0974d75",
+    "semantic_hash": "355af0441893b678f903f68ea0974d75"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/schema.sql": {
+    "mtime": 1781013737.7472055,
+    "ast_hash": "f0441fbd15c33a0c595cf42d4f93ae20",
+    "semantic_hash": "f0441fbd15c33a0c595cf42d4f93ae20"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/CLAUDE.md": {
+    "mtime": 1781013737.7369313,
+    "ast_hash": "4a05c2e0ea2c1e0ec1fceea761a2184d",
+    "semantic_hash": "4a05c2e0ea2c1e0ec1fceea761a2184d"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/README.md": {
+    "mtime": 1781013737.7372596,
+    "ast_hash": "d1b0ed1b289cda516f39a6c0466c73ab",
+    "semantic_hash": "d1b0ed1b289cda516f39a6c0466c73ab"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/.github/workflows/etl_daily.yml": {
+    "mtime": 1781014334.3604548,
+    "ast_hash": "973876acb5fc5e9e62aa1afc0e1728ea",
+    "semantic_hash": "973876acb5fc5e9e62aa1afc0e1728ea"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/CLAUDE.md": {
+    "mtime": 1781014334.3625553,
+    "ast_hash": "4a05c2e0ea2c1e0ec1fceea761a2184d",
+    "semantic_hash": "4a05c2e0ea2c1e0ec1fceea761a2184d"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/HANDOFF.md": {
+    "mtime": 1781014334.366144,
+    "ast_hash": "1d75d9e767839eca1876152495aed03a",
+    "semantic_hash": "1d75d9e767839eca1876152495aed03a"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/README.md": {
+    "mtime": 1781014334.364385,
+    "ast_hash": "d1b0ed1b289cda516f39a6c0466c73ab",
+    "semantic_hash": "d1b0ed1b289cda516f39a6c0466c73ab"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/docs/API_REFERENCE.md": {
+    "mtime": 1781014334.357143,
+    "ast_hash": "227e055473757a5df2e19adebfe80d9b",
+    "semantic_hash": "227e055473757a5df2e19adebfe80d9b"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/docs/UI_SPEC.md": {
+    "mtime": 1781014334.3584874,
+    "ast_hash": "618e0c4fabb5e0e9fbde298c7fab747c",
+    "semantic_hash": "618e0c4fabb5e0e9fbde298c7fab747c"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival-analyzer/pipeline/requirements.txt": {
+    "mtime": 1781047453.2258785,
+    "ast_hash": "72584aeb28546e2951c91f3a1429aa83",
+    "semantic_hash": "72584aeb28546e2951c91f3a1429aa83"
+  },
+  "/Users/andrew/Documents/GitHub/music-festival-analyzer/festival_analyzer_architecture.svg": {
+    "mtime": 1781013737.7470586,
+    "ast_hash": "5a4d6dd840cfd27db20db428f1da2d63",
+    "semantic_hash": "5a4d6dd840cfd27db20db428f1da2d63"
+  }
+}
