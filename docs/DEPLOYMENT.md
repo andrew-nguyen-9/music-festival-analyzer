@@ -22,12 +22,12 @@ In the Vercel dashboard → the project for **festival.an9.dev**:
    always reflects shipped work, so it is the live production source.
 4. **Preview Deployments**: leave enabled (default) → every PR gets a preview URL.
 
-> **Release model (deliberate deviation from `WORKFLOW.md`).** WORKFLOW says `main`
-> only receives a *closed* phase. In practice we ship per-segment: segments integrate
-> on the phase branch (`v2`), and when a segment is gate-green we **merge `v2` → `main`**
-> to release it to `festival.an9.dev`. This keeps the portfolio-linked site current
-> without waiting for the whole phase. Segments still never commit to `main` directly —
-> they flow `sub-branch → v2 → main`.
+> **Release model (per `WORKFLOW.md` gate d).** `main` only receives a **closed
+> phase**. Segments integrate on the phase branch (`v2`) and do **not** ship to `main`
+> individually. The live site stays at the last closed phase (currently **v2.0**) for
+> the whole of v2's development; when **all** of v2 is complete and gate-green, a single
+> `v2 → main` merge releases the phase. Flow: `sub-branch → v2`, then (once, at phase
+> close) `v2 → main`.
 
 ## 2. Environment variables
 
@@ -56,15 +56,19 @@ See `pipeline/.env.example`.
 `festival.an9.dev` (subdomain of the owned `an9.dev`, already connected to Vercel):
 **Settings → Domains** → assign `festival.an9.dev` to this project. Vercel issues the TLS cert automatically.
 
-## 4. Releasing a segment (was: first production deploy, v2.0.7 — ✅ done)
+## 4. Releasing the phase (v2.0.7 first deploy — ✅ done)
 
-The v2.0 foundation is live at `festival.an9.dev` (merged `v2` → `main` via PR).
-For each subsequent gate-green segment:
+v2.0 is live at `festival.an9.dev` (merged `v2` → `main` via PR). That was the
+phase's first production cut. **No further `main` merges until the v2 phase closes.**
+At phase close (all segments gate-green, `WORKFLOW.md` gates a–h):
 
-1. Merge the segment sub-branch → `v2` (after its exit gates pass).
-2. Merge `v2` → `main` (PR or fast-forward).
+1. Final phase gates pass on `v2`.
+2. Merge `v2` → `main` (one release).
 3. Vercel auto-builds `main` → production.
 4. Confirm the deploy is green and **verify end-to-end** (checklist below).
+
+During the phase, exercise unreleased segment work via Vercel **preview** deploys
+(every PR against `v2` gets a preview URL) — not production.
 
 ## 5. Live verification checklist
 
