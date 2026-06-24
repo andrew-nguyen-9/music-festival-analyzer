@@ -5,6 +5,7 @@ Start here. This index maps the whole `docs/` tree.
 ## Operating model
 - [`WORKFLOW.md`](./WORKFLOW.md) — versioning (`v[p].[s].[t]`), branch model, segment & phase lifecycle gates. **Read first.**
 - [`ROADMAP.md`](./ROADMAP.md) — all phases at a glance.
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — Vercel Git integration, env vars, domain, live verification.
 
 ## Planning (per phase)
 - [`planning/v2/PLAN.md`](./planning/v2/PLAN.md) — active phase: every segment, its tasks, dependencies, exit criteria.
