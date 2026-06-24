@@ -5,7 +5,7 @@ Seeds the complete Lollapalooza 2026 schedule into the Supabase `lineups` table.
 
 For each artist, the script will:
   1. Look up or create the artist record (upsert on slug)
-  2. Upsert the lineup entry (on_conflict: festival_id, artist_id, year)
+  2. Upsert the lineup entry (on_conflict: festival_id, artist_id, year, day, set_time_start)
 
 Run:
     python lolla_schedule_seeder.py               # seed all entries
@@ -118,7 +118,7 @@ def upsert_lineup_entry(
 
     supabase.table("lineups").upsert(
         row,
-        on_conflict="festival_id,artist_id,year",
+        on_conflict="festival_id,artist_id,year,day,set_time_start",
     ).execute()
 
 

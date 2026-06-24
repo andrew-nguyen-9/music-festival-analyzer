@@ -55,3 +55,4 @@ jobs:
           python dedupe_artists.py --self-test
           python geocoder.py
           python location_enricher.py --self-test
+          python test_idempotency.py

@@ -391,7 +391,7 @@ def write_lineup(
                         "is_headliner": is_headliner,
                         "source": source,
                     },
-                    on_conflict="festival_id,artist_id,year",
+                    on_conflict="festival_id,artist_id,year,day,set_time_start",
                 ).execute()
                 total += 1
             except Exception as e:

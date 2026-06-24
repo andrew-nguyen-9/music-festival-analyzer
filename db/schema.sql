@@ -82,7 +82,9 @@ create table if not exists lineups (
   is_headliner  boolean default false,
   source        text,                              -- provenance/trust (added v2.3.3): official|wikipedia|ticketmaster|songkick|setlistfm|ocr|estimated
   created_at    timestamptz default now(),
-  unique (festival_id, artist_id, year)
+  -- Set-grain uniqueness (v2.3.6): one row per set, so an artist can play
+  -- multiple sets. NULLS NOT DISTINCT keeps null-day/null-time scraped rows idempotent.
+  constraint lineups_slot_key unique nulls not distinct (festival_id, artist_id, year, day, set_time_start)
 );
 
 -- ============================================================
@@ -362,6 +364,29 @@ $$ language plpgsql;
 create trigger lineups_protect_verified
   before update on lineups
   for each row execute function protect_verified_lineups();
+
+-- INSERT-path half of the conflict policy (v2.3.6): a non-verified source can't
+-- add a new row for an artist/year a verified source already covers.
+create or replace function skip_unverified_insert()
+returns trigger as $$
+begin
+  if (new.source is null or new.source not in ('official', 'wikipedia'))
+     and exists (
+       select 1 from lineups l
+       where l.festival_id = new.festival_id
+         and l.artist_id = new.artist_id
+         and l.year = new.year
+         and l.source in ('official', 'wikipedia')
+     ) then
+    return null;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger lineups_skip_unverified_insert
+  before insert on lineups
+  for each row execute function skip_unverified_insert();
 
 create trigger stages_updated_at before update on stages
   for each row execute function set_updated_at();
