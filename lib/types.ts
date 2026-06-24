@@ -118,6 +118,26 @@ export interface Tag {
   type: "genre" | "vibe" | "format" | "region" | "season" | null;
 }
 
+/** Cached Spotify data per artist (TTL). Backing store for v2.2; written by the
+ *  sync worker (service role), read publicly. `expires_at` is DB-generated. */
+export interface ArtistSpotifyCache {
+  id: string;
+  artist_id: string;
+  spotify_id: string | null;
+  followers: number | null;
+  popularity: number | null; // 0–100
+  genres: string[];
+  image_url: string | null;
+  preview_url: string | null;
+  top_tracks: unknown | null; // [{ name, preview_url, ... }]
+  raw: unknown | null; // full Spotify payload
+  fetched_at: string;
+  ttl_seconds: number;
+  expires_at: string; // generated: fetched_at + ttl_seconds
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Composite / view types used by the UI ──────────────────────
 
 /** A lineup row joined with its artist — what LineupGrid renders. */

@@ -6,6 +6,7 @@
 // always render (with empty states) rather than crash.
 // ─────────────────────────────────────────────────────────────
 
+import { cache } from "react";
 import { getSupabase } from "./supabase";
 import { festivalYear } from "./format";
 import type {
@@ -24,6 +25,31 @@ function warn(scope: string, error: unknown): void {
   console.warn(`[queries:${scope}]`, (error as Error)?.message ?? error);
 }
 
+// ─────────────────────────────────────────────────────────────
+// Column sets — select only what the UI renders (v2.1.5).
+// Derived from actual component field usage; kept here so every query
+// shares one source of truth instead of `select("*")`. Rows are cast to the
+// full type for ergonomics — only listed columns are present at runtime, and
+// components are verified to read only those.
+// ─────────────────────────────────────────────────────────────
+
+/** Festival fields a card/list renders (+ filter/ranking keys). */
+const FESTIVAL_CARD =
+  "id, slug, name, city, state, start_date, end_date, tags, accent_color, hero_image_url, vector_art, dates_estimated, is_active";
+/** Festival detail page adds the long-form / secondary fields. */
+const FESTIVAL_FULL = `${FESTIVAL_CARD}, country, venue, website_url, description`;
+
+/** Artist fields a lineup card renders — no bio/blobs (851-row join). */
+const ARTIST_CARD =
+  "id, slug, name, genres, image_url, header_image_url, spotify_popularity, spotify_followers";
+/** Artist detail page adds bio, links, preview, origin. */
+const ARTIST_FULL =
+  "id, slug, name, bio, genres, origin_city, origin_country, website_url, spotify_id, spotify_url, spotify_followers, spotify_popularity, preview_url, image_url, header_image_url";
+
+/** Lineup row columns (excludes unused created_at). */
+const LINEUP_COLS =
+  "id, festival_id, artist_id, year, stage, day, set_time_start, set_time_end, is_headliner";
+
 // ── Festivals ──────────────────────────────────────────────────
 
 export async function getFestivals(): Promise<Festival[]> {
@@ -32,11 +58,11 @@ export async function getFestivals(): Promise<Festival[]> {
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .order("start_date", { ascending: true });
     if (error) throw error;
-    return (data as Festival[]) ?? [];
+    return (data as unknown as Festival[]) ?? [];
   } catch (e) {
     warn("getFestivals", e);
     return [];
@@ -50,32 +76,34 @@ export async function getFeaturedFestivals(limit = 6): Promise<Festival[]> {
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .contains("tags", ["flagship"])
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
     if (error) throw error;
-    const featured = (data as Festival[]) ?? [];
+    const featured = (data as unknown as Festival[]) ?? [];
     if (featured.length > 0) return featured;
     // Fallback: flagship tag not set yet — return next N upcoming festivals.
     const { data: upcoming, error: e2 } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
     if (e2) throw e2;
-    return (upcoming as Festival[]) ?? [];
+    return (upcoming as unknown as Festival[]) ?? [];
   } catch (e) {
     warn("getFeaturedFestivals", e);
     return [];
   }
 }
 
-export async function getFestivalBySlug(
+// Wrapped in React cache() — request-scoped memoization dedupes the double
+// fetch from generateMetadata + the page render (same for getArtistBySlug).
+export const getFestivalBySlug = cache(async function getFestivalBySlug(
   slug: string,
 ): Promise<Festival | null> {
   const sb = getSupabase();
@@ -83,16 +111,16 @@ export async function getFestivalBySlug(
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_FULL)
       .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
-    return (data as Festival) ?? null;
+    return (data as unknown as Festival) ?? null;
   } catch (e) {
     warn("getFestivalBySlug", e);
     return null;
   }
-}
+});
 
 export async function getRelatedFestivals(
   festival: Festival,
@@ -103,12 +131,12 @@ export async function getRelatedFestivals(
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .neq("id", festival.id)
       .overlaps("tags", festival.tags)
       .limit(limit + 4);
     if (error) throw error;
-    const rows = (data as Festival[]) ?? [];
+    const rows = (data as unknown as Festival[]) ?? [];
     // Rank by tag-overlap count, desc.
     return rows
       .map((f) => ({
@@ -135,11 +163,13 @@ export async function getLineup(
   try {
     const { data, error } = await sb
       .from("lineups")
-      .select("*, artist:artists(*)")
+      .select(`${LINEUP_COLS}, artist:artists(${ARTIST_CARD})`)
       .eq("festival_id", festivalId)
       .eq("year", year);
     if (error) throw error;
-    return ((data as LineupEntry[]) ?? []).filter((l) => l.artist != null);
+    return ((data as unknown as LineupEntry[]) ?? []).filter(
+      (l) => l.artist != null,
+    );
   } catch (e) {
     warn("getLineup", e);
     return [];
@@ -217,22 +247,24 @@ export async function getFunFacts(
 
 // ── Artists ────────────────────────────────────────────────────
 
-export async function getArtistBySlug(slug: string): Promise<Artist | null> {
+export const getArtistBySlug = cache(async function getArtistBySlug(
+  slug: string,
+): Promise<Artist | null> {
   const sb = getSupabase();
   if (!sb) return null;
   try {
     const { data, error } = await sb
       .from("artists")
-      .select("*")
+      .select(ARTIST_FULL)
       .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
-    return (data as Artist) ?? null;
+    return (data as unknown as Artist) ?? null;
   } catch (e) {
     warn("getArtistBySlug", e);
     return null;
   }
-}
+});
 
 export async function getArtistAppearances(
   artistId: string,
@@ -242,11 +274,11 @@ export async function getArtistAppearances(
   try {
     const { data, error } = await sb
       .from("lineups")
-      .select("*, festival:festivals(*)")
+      .select(`${LINEUP_COLS}, festival:festivals(${FESTIVAL_CARD})`)
       .eq("artist_id", artistId)
       .order("year", { ascending: false });
     if (error) throw error;
-    return ((data as ArtistAppearance[]) ?? []).filter(
+    return ((data as unknown as ArtistAppearance[]) ?? []).filter(
       (a) => a.festival != null,
     );
   } catch (e) {
