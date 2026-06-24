@@ -32,3 +32,26 @@ jobs:
       # NEXT_PUBLIC_SUPABASE_* are absent, so the build is secret-free.
       - name: Build
         run: npm run build
+
+  pipeline-checks:
+    name: Pipeline self-tests (v2.3 validation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Offline self-tests only — no Supabase/Spotify/Anthropic. Pure-python deps.
+      - name: Install self-test deps
+        run: pip install python-slugify requests tenacity
+
+      - name: Run pipeline self-tests
+        working-directory: pipeline
+        run: |
+          python validate_data.py --self-test
+          python names.py
+          python dedupe_artists.py --self-test
+          python geocoder.py
+          python location_enricher.py --self-test
