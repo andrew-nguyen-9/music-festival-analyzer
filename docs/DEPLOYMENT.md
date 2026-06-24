@@ -18,7 +18,12 @@ In the Vercel dashboard → the project for **festival.an9.dev**:
    - Root Directory: `./` (repo root — leave default).
    - Framework Preset: **Next.js** (auto-detected).
    - Build Command / Output: leave default (`next build`).
-3. **Settings → Git → Production Branch**: `main`.
+3. **Settings → Git → Production Branch**:
+   - **During the v2 phase** (now): set it to **`v2`** so `festival.an9.dev` serves
+     the phase branch as segments land. Per `WORKFLOW.md`, `main` only receives a
+     **closed** phase, so it has no app yet.
+   - **At v2 phase close**: after `v2` merges to `main`, switch Production Branch
+     back to **`main`**.
 4. **Preview Deployments**: leave enabled (default) → every PR gets a preview URL.
 
 ## 2. Environment variables
@@ -50,9 +55,12 @@ See `pipeline/.env.example`.
 
 ## 4. First production deploy (v2.0.7)
 
-1. Merge `v2` → `main` (after the v2.0 segment gates pass).
-2. Vercel auto-builds `main` → production.
-3. Confirm the deploy is green in the dashboard and `festival.an9.dev` resolves.
+`v2.0` is merged into the `v2` phase branch. Do **not** merge `v2` → `main` yet —
+that happens only at phase close (`WORKFLOW.md` gate d), after all v2 segments.
+
+1. Push `v2` to the GitHub remote (Vercel Git integration builds from the remote).
+2. With Production Branch = `v2` (step 1.3 above), Vercel auto-builds `v2` → production.
+3. Confirm the deploy is green and `festival.an9.dev` resolves.
 4. **Verify Lollapalooza end-to-end** (see checklist below).
 
 ## 5. Live verification checklist
@@ -62,9 +70,10 @@ See `pipeline/.env.example`.
 - [ ] An artist page (`/artist/<slug>`) renders from cached data.
 - [ ] No client-side Spotify network calls (DevTools → Network).
 - [ ] No console errors; images load from allowed CDNs (`next.config.mjs`).
-- [ ] A PR against `main` produced a working preview URL.
+- [ ] A PR against the active phase branch (`v2`) produced a working preview URL.
 
 ## CI relationship
 
 `.github/workflows/ci.yml` typechecks + builds on every PR (secret-free). Vercel's own
-build is the deploy gate. CI catches type/build breakage before merge; Vercel ships `main`.
+build is the deploy gate. CI catches type/build breakage before merge; Vercel ships the
+configured Production Branch (`v2` during the phase, `main` after phase close).
