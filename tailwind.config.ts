@@ -22,7 +22,7 @@ const config: Config = {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       fontSize: {
-        // UI_SPEC typography scale
+        // docs/design/UI_SPEC.md typography scale
         "display-xl": ["clamp(3.5rem, 10vw, 7.5rem)", { lineHeight: "0.95", letterSpacing: "-0.03em", fontWeight: "800" }],
         "display-lg": ["clamp(2.5rem, 6vw, 5rem)", { lineHeight: "1.0", letterSpacing: "-0.02em", fontWeight: "700" }],
         "display-md": ["clamp(1.75rem, 3.5vw, 3rem)", { lineHeight: "1.05", letterSpacing: "-0.01em", fontWeight: "600" }],

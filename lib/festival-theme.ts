@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Runtime festival theming.
 // Derives a small palette from a single accent hex (festivals.accent_color)
-// per docs/UI_SPEC.md. Pure functions — safe in Server Components.
+// per docs/design/UI_SPEC.md. Pure functions — safe in Server Components.
 // ─────────────────────────────────────────────────────────────
 
 export interface FestivalTheme {
