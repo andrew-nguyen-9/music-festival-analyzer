@@ -12,6 +12,7 @@ import { festivalYear } from "./format";
 import type {
   Artist,
   ArtistAppearance,
+  ArtistSpotifyCache,
   Festival,
   FunFact,
   FunFactsRow,
@@ -265,6 +266,60 @@ export const getArtistBySlug = cache(async function getArtistBySlug(
     return null;
   }
 });
+
+/** Spotify cache fields the UI overlays onto an artist (v2.2). */
+const SPOTIFY_CACHE_COLS =
+  "spotify_id, followers, popularity, genres, image_url, preview_url";
+
+/**
+ * Cached Spotify data for an artist (v2.2). The frontend reads this table only;
+ * it never calls Spotify. Returns null when the sync worker hasn't cached this
+ * artist yet (page then falls back to the artists-table values).
+ */
+export const getArtistSpotifyCache = cache(async function getArtistSpotifyCache(
+  artistId: string,
+): Promise<ArtistSpotifyCache | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("artist_spotify_cache")
+      .select(SPOTIFY_CACHE_COLS)
+      .eq("artist_id", artistId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as unknown as ArtistSpotifyCache) ?? null;
+  } catch (e) {
+    warn("getArtistSpotifyCache", e);
+    return null;
+  }
+});
+
+/**
+ * Overlay cached Spotify fields onto an artist for rendering. Cache wins when a
+ * field is present; otherwise the artists-table value (legacy enricher) shows.
+ * spotify_url is derived from the cached spotify_id since the cache doesn't
+ * store it.
+ */
+export function withSpotifyCache(
+  artist: Artist,
+  c: ArtistSpotifyCache | null,
+): Artist {
+  if (!c) return artist;
+  const spotifyId = c.spotify_id ?? artist.spotify_id;
+  return {
+    ...artist,
+    spotify_id: spotifyId,
+    spotify_followers: c.followers ?? artist.spotify_followers,
+    spotify_popularity: c.popularity ?? artist.spotify_popularity,
+    genres: c.genres?.length ? c.genres : artist.genres,
+    image_url: c.image_url ?? artist.image_url,
+    preview_url: c.preview_url ?? artist.preview_url,
+    spotify_url:
+      artist.spotify_url ??
+      (spotifyId ? `https://open.spotify.com/artist/${spotifyId}` : null),
+  };
+}
 
 export async function getArtistAppearances(
   artistId: string,

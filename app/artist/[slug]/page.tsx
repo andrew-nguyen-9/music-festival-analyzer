@@ -5,7 +5,12 @@ import ArtistHero from "@/components/ArtistHero";
 import StreamingWidget from "@/components/StreamingWidget";
 import ArtistDiscography from "@/components/ArtistDiscography";
 import FestivalAppearances from "@/components/FestivalAppearances";
-import { getArtistBySlug, getArtistAppearances } from "@/lib/queries";
+import {
+  getArtistBySlug,
+  getArtistAppearances,
+  getArtistSpotifyCache,
+  withSpotifyCache,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +33,15 @@ export async function generateMetadata({
 
 export default async function ArtistPage({ params }: PageProps) {
   const { slug } = await params;
-  const artist = await getArtistBySlug(slug);
-  if (!artist) notFound();
+  const base = await getArtistBySlug(slug);
+  if (!base) notFound();
 
-  const appearances = await getArtistAppearances(artist.id);
+  // Overlay cached Spotify data (v2.2) — read from cache, never from Spotify.
+  const [cache, appearances] = await Promise.all([
+    getArtistSpotifyCache(base.id),
+    getArtistAppearances(base.id),
+  ]);
+  const artist = withSpotifyCache(base, cache);
   // Theme the page by the artist's headliner/first festival accent, if any.
   const themeAccent =
     appearances.find((a) => a.is_headliner)?.festival.accent_color ??
