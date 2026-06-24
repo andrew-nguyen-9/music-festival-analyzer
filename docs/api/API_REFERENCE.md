@@ -6,25 +6,54 @@ All external APIs used in the Festival Analyzer pipeline and frontend.
 
 ## Spotify Web API
 
-**Purpose**: Artist metadata, genres, follower count, popularity score, 30s preview URLs  
-**Auth**: Client Credentials flow (no user login needed for public data)  
-**Free tier**: 1,000 req/day per app (sufficient for Phase 1–2)  
+**Purpose**: Artist metadata, genres, follower count, popularity score, images  
+**Auth**: Client Credentials flow (server-side only; no user login for public data)  
+**Free tier**: 1,000 req/day per app  
 **Docs**: https://developer.spotify.com/documentation/web-api
+
+> **Server-only.** Spotify is called exclusively by the pipeline sync worker
+> (`pipeline/spotify_sync.py`, v2.2), which writes to `artist_spotify_cache`. The
+> frontend reads that cache and **never** calls the Spotify Web API. The artist
+> page's Spotify *embed* iframe (`open.spotify.com/embed/...`) is an auth-free
+> public widget — not a Web API call — and is the sanctioned way to play audio.
 
 ### Setup
 1. Create app at https://developer.spotify.com/dashboard
-2. Copy `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` to `.env`
+2. Copy `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` to `pipeline/.env`
+   (and to GitHub Actions secrets for `etl_daily.yml`).
 
-### Key endpoints used
+### 2026 API constraints (the worker is built around these)
+- **No bulk metadata endpoints** → artists are fetched **individually** via search.
+- **Legacy `/artists/{id}/top-tracks` removed** → no server-side preview URLs;
+  `preview_url` / `top_tracks` stay null and the embed handles playback.
+- **Global `/search` capped at 10 items/request** → the worker pages with `offset`
+  (up to `SEARCH_PAGES` pages) so lesser-known acts still get matched.
+- **Development Mode tightened** → client-credentials still serves public data.
+
+### Key endpoint used
 
 ```
-GET /search?q=artist:{name}&type=artist&limit=1
-GET /artists/{id}/top-tracks?market=US
+GET /search?q={name}&type=artist&limit=10&offset={0,10,20}
 ```
+
+One `/search` per artist suffices — the individual `/artists/{id}` endpoint
+returns the same fields. In practice 2026 client-credentials responses are
+**inconsistent**: `image_url` and the Spotify ID come through reliably, but
+`popularity` / `followers` / `genres` are frequently null. The worker therefore
+*coalesces forward* (a fresh null never overwrites a known-good cached value),
+and the frontend falls back to the artists-table (enricher) values for any field
+the cache lacks.
+
+### Name matching
+Festival artist names → Spotify IDs via a normalized fuzzy ratio (stdlib
+`difflib`); a match is written only above `MATCH_THRESHOLD` (0.85). Target: ≥90%
+of artists matched. Unmatched names cache a "miss" row so the worker doesn't
+re-search them until the TTL expires; the page falls back to artists-table data.
 
 ### Rate limits
-- 429 responses include `Retry-After` header
-- `spotipy` handles retry automatically with `spotipy.Spotify(retries=3)`
+- 429 responses include a `Retry-After` header.
+- The worker uses `tenacity` backoff that **honors `Retry-After`** on 429 and
+  falls back to capped exponential backoff on 5xx (`pipeline/spotify_sync.py`).
 
 ---
 
