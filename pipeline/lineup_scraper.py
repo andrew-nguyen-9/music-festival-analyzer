@@ -22,10 +22,10 @@ import time
 import logging
 import argparse
 from datetime import date, datetime
-from slugify import slugify
 from dotenv import load_dotenv
 
 import requests
+from names import canonical_name, canonical_slug
 from supabase import create_client, Client
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.console import Console
@@ -334,7 +334,7 @@ def resolve_festival_id(supabase: Client, slug: str) -> str | None:
 
 
 def upsert_artist_record(supabase: Client, name: str, image_url: str | None) -> str | None:
-    slug = slugify(name)
+    slug = canonical_slug(name)
     existing = supabase.table("artists").select("id, image_url").eq("slug", slug).execute()
     if existing.data:
         artist_id = existing.data[0]["id"]
@@ -345,7 +345,7 @@ def upsert_artist_record(supabase: Client, name: str, image_url: str | None) -> 
 
     result = supabase.table("artists").insert({
         "slug": slug,
-        "name": name,
+        "name": canonical_name(name),
         "image_url": image_url,
     }).execute()
     if not result.data:

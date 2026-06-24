@@ -16,12 +16,12 @@ Schedule: one-off / manual; re-run is safe (idempotent)
 """
 
 import os
-import re
 import argparse
 import logging
 
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from names import canonical_name, canonical_slug
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
@@ -276,16 +276,6 @@ SCHEDULE = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def slugify(text: str) -> str:
-    """Convert an artist name to a URL-safe slug."""
-    text = text.lower().strip()
-    # Replace common punctuation / special chars
-    text = re.sub(r"[&,']", "", text)
-    text = re.sub(r"[^a-z0-9]+", "-", text)
-    text = text.strip("-")
-    return text
-
-
 def get_supabase() -> Client:
     return create_client(
         os.environ["NEXT_PUBLIC_SUPABASE_URL"],
@@ -315,14 +305,14 @@ def upsert_artist(supabase: Client, name: str, dry_run: bool) -> str | None:
     Upsert an artist record and return its UUID.
     On dry-run, returns None (no DB write).
     """
-    slug = slugify(name)
+    slug = canonical_slug(name)
     if dry_run:
         return None
 
     resp = (
         supabase.table("artists")
         .upsert(
-            {"slug": slug, "name": name, "genres": [], "tags": []},
+            {"slug": slug, "name": canonical_name(name), "genres": [], "tags": []},
             on_conflict="slug",
         )
         .execute()

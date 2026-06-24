@@ -29,11 +29,11 @@ import logging
 import argparse
 from datetime import date, datetime
 from io import BytesIO
-from slugify import slugify
 from dotenv import load_dotenv
 
 import requests
 import anthropic
+from names import canonical_name, canonical_slug
 from supabase import create_client, Client
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.console import Console
@@ -321,11 +321,11 @@ No other text.""",
 # ── Database helpers ──────────────────────────────────────────
 
 def upsert_artist_record(supabase: Client, name: str) -> str | None:
-    slug = slugify(name)
+    slug = canonical_slug(name)
     existing = supabase.table("artists").select("id").eq("slug", slug).execute()
     if existing.data:
         return existing.data[0]["id"]
-    result = supabase.table("artists").insert({"slug": slug, "name": name}).execute()
+    result = supabase.table("artists").insert({"slug": slug, "name": canonical_name(name)}).execute()
     return result.data[0]["id"] if result.data else None
 
 
