@@ -5,6 +5,8 @@
 *.env
 !.env.example
 !.env.local.example
+.cache
+pipeline/.cache
 
 # ── Python ──────────────────────────────────────────────
 __pycache__/
