@@ -19,9 +19,9 @@ create table if not exists artist_spotify_cache (
   raw           jsonb,                               -- full Spotify payload (forward-compat)
   fetched_at    timestamptz not null default now(),
   ttl_seconds   int not null default 604800,         -- 7 days
-  expires_at    timestamptz
-                  generated always as
-                  (fetched_at + make_interval(secs => ttl_seconds)) stored,
+  -- expires_at is trigger-maintained, not GENERATED: timestamptz + interval is
+  -- STABLE (timezone/DST-dependent), which Postgres rejects in a generated column.
+  expires_at    timestamptz,                         -- = fetched_at + ttl_seconds (see trigger)
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );
@@ -30,10 +30,20 @@ create table if not exists artist_spotify_cache (
 create index if not exists idx_artist_spotify_cache_expires
   on artist_spotify_cache (expires_at);
 
--- updated_at maintenance (reuses set_updated_at() from schema.sql).
-drop trigger if exists artist_spotify_cache_updated_at on artist_spotify_cache;
-create trigger artist_spotify_cache_updated_at before update on artist_spotify_cache
-  for each row execute function set_updated_at();
+-- Maintains expires_at + updated_at on every insert/update.
+create or replace function set_artist_cache_expiry()
+returns trigger as $$
+begin
+  new.expires_at := new.fetched_at + make_interval(secs => new.ttl_seconds);
+  new.updated_at := now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists artist_spotify_cache_expiry on artist_spotify_cache;
+create trigger artist_spotify_cache_expiry
+  before insert or update on artist_spotify_cache
+  for each row execute function set_artist_cache_expiry();
 
 -- RLS: public read, service-role write only (matches every other table).
 alter table artist_spotify_cache enable row level security;
