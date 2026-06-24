@@ -32,7 +32,8 @@ from collections import defaultdict
 
 
 def _mins(t: str) -> int:
-    h, m = t.split(":")
+    # Accept "HH:MM" (curated schedule) and "HH:MM:SS" (Postgres time columns).
+    h, m = t.split(":")[:2]
     return int(h) * 60 + int(m)
 
 
@@ -184,6 +185,13 @@ def _self_test() -> None:
 
     # 5. Missing stage coordinates are caught.
     assert validate_stages([{"name": "S", "festival_id": "abcd1234", "latitude": None, "longitude": None}])
+
+    # 6. Postgres time columns serialize as HH:MM:SS — must parse, not crash.
+    assert _mins("20:30:00") == 1230
+    assert validate_schedule([
+        {"artist": "A", "stage": "S", "day": "2026-08-01", "start": "12:00:00", "end": "13:00:00"},
+        {"artist": "B", "stage": "S", "day": "2026-08-01", "start": "12:30:00", "end": "13:30:00"},
+    ], "2026-08-01", "2026-08-02") and True  # overlap still detected on HH:MM:SS
 
     print("validate_data: all checks passed")
 
