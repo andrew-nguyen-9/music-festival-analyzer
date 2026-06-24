@@ -12,9 +12,10 @@ hand-edit live tables. One-shot bootstrap (schema + Lolla seed): `setup_supabase
 
 | Table | Purpose | Key columns | Notes |
 |-------|---------|-------------|-------|
-| `festivals` | One row per festival | `slug` (unique), `name`, `start_date`/`end_date`, `tags[]`, `accent_color`, `dates_estimated`, `vector_art` | Theming via `accent_color`; `dates_estimated` flags unconfirmed dates. |
+| `festivals` | One row per festival | `slug` (unique), `name`, `start_date`/`end_date`, `tags[]`, `accent_color`, `dates_estimated`, `vector_art`, `timezone`, `latitude`/`longitude`/`geocoded_at` | Theming via `accent_color`; `dates_estimated` flags unconfirmed dates. `timezone` (IANA) is the zone set times are stored in. lat/lng geocoded via Nominatim (v2.3.4); `geocoded_at` doubles as the geocode cache key. |
 | `artists` | One row per artist | `slug` (unique), `spotify_id` (unique), `spotify_popularity`, `genres[]` | Spotify scalars are populated by the pipeline; cache staging in `artist_spotify_cache`. |
-| `lineups` | festival × artist join | FK `festival_id`, `artist_id`; `year`; unique `(festival_id, artist_id, year)` | `day` + `set_time_*` drive the schedule views. |
+| `lineups` | festival × artist join | FK `festival_id`, `artist_id`; `year`; `source`; unique `(festival_id, artist_id, year, day, set_time_start)` NULLS NOT DISTINCT | One row per **set** (v2.3.6) so an artist can play multiple sets. `day` + `set_time_*` drive the schedule views (set times are **local** to `festivals.timezone`). `source` = provenance/trust; `protect_verified_lineups` (UPDATE) + `skip_unverified_insert` (INSERT) triggers stop scrapers clobbering `official`/`wikipedia` rows. |
+| `stages` | Per-festival stage coordinates | FK `festival_id`, `name`; unique `(festival_id, name)`; `latitude`/`longitude`, `coords_source` | Backing store for v2.8. v2.8 joins `lineups.stage = stages.name`. `coords_source` ∈ `known`/`venue_centroid`. |
 | `media` | Festival photos (Unsplash) | FK `festival_id`, `credit_html` | `credit_html` is the required Unsplash attribution. |
 | `social_posts` | IG/X posts per festival | FK `festival_id`, `platform`, unique `(platform, post_id)` | `platform` checked in (`instagram`,`x`). |
 | `fun_facts` | AI facts per festival×year | FK `festival_id`, `facts jsonb`, unique `(festival_id, year)` | `facts` = array of `{fact, category}`. |
@@ -31,6 +32,7 @@ hand-edit live tables. One-shot bootstrap (schema + Lolla seed): `setup_supabase
 - `idx_artists_popularity (spotify_popularity desc nulls last)` — popularity sort.
 - GIN: name trigram (fuzzy search), `tags`, `genres`. Partial: `idx_festivals_dates_estimated`.
 - `idx_artist_spotify_cache_expires (expires_at)` — stale-row sweeps.
+- `idx_stages_festival (festival_id)` — stage lookups per festival (v2.3.4).
 
 ## RLS
 

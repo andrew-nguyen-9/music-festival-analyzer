@@ -29,11 +29,11 @@ import logging
 import argparse
 from datetime import date, datetime
 from io import BytesIO
-from slugify import slugify
 from dotenv import load_dotenv
 
 import requests
 import anthropic
+from names import canonical_name, canonical_slug
 from supabase import create_client, Client
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.console import Console
@@ -321,11 +321,11 @@ No other text.""",
 # ── Database helpers ──────────────────────────────────────────
 
 def upsert_artist_record(supabase: Client, name: str) -> str | None:
-    slug = slugify(name)
+    slug = canonical_slug(name)
     existing = supabase.table("artists").select("id").eq("slug", slug).execute()
     if existing.data:
         return existing.data[0]["id"]
-    result = supabase.table("artists").insert({"slug": slug, "name": name}).execute()
+    result = supabase.table("artists").insert({"slug": slug, "name": canonical_name(name)}).execute()
     return result.data[0]["id"] if result.data else None
 
 
@@ -335,6 +335,7 @@ def write_schedule(
     year: int,
     entries: list[dict],
     dry_run: bool,
+    source: str = "ticketmaster",
 ) -> int:
     total = 0
     for entry in entries:
@@ -363,11 +364,12 @@ def write_schedule(
             "set_time_start": entry.get("set_start"),
             "set_time_end": entry.get("set_end"),
             "is_headliner": bool(entry.get("is_headliner", False)),
+            "source": source,
         }
         try:
             supabase.table("lineups").upsert(
                 payload,
-                on_conflict="festival_id,artist_id,year",
+                on_conflict="festival_id,artist_id,year,day,set_time_start",
             ).execute()
             total += 1
         except Exception as e:
@@ -432,7 +434,7 @@ def process_festival(
         return
     festival_id = festival_result.data[0]["id"]
 
-    n = write_schedule(supabase, festival_id, year, entries, dry_run=False)
+    n = write_schedule(supabase, festival_id, year, entries, dry_run=False, source=used_source)
     console.log(f"  [bold green]✓ {n} schedule entries written ({used_source})")
 
 

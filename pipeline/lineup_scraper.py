@@ -22,10 +22,10 @@ import time
 import logging
 import argparse
 from datetime import date, datetime
-from slugify import slugify
 from dotenv import load_dotenv
 
 import requests
+from names import canonical_name, canonical_slug
 from supabase import create_client, Client
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.console import Console
@@ -334,7 +334,7 @@ def resolve_festival_id(supabase: Client, slug: str) -> str | None:
 
 
 def upsert_artist_record(supabase: Client, name: str, image_url: str | None) -> str | None:
-    slug = slugify(name)
+    slug = canonical_slug(name)
     existing = supabase.table("artists").select("id, image_url").eq("slug", slug).execute()
     if existing.data:
         artist_id = existing.data[0]["id"]
@@ -345,7 +345,7 @@ def upsert_artist_record(supabase: Client, name: str, image_url: str | None) -> 
 
     result = supabase.table("artists").insert({
         "slug": slug,
-        "name": name,
+        "name": canonical_name(name),
         "image_url": image_url,
     }).execute()
     if not result.data:
@@ -360,6 +360,7 @@ def write_lineup(
     year: int,
     days: list[dict],
     dry_run: bool,
+    source: str = "ticketmaster",
 ) -> int:
     total = 0
     for day in days:
@@ -388,8 +389,9 @@ def write_lineup(
                         "year": year,
                         "day": event_date,
                         "is_headliner": is_headliner,
+                        "source": source,
                     },
-                    on_conflict="festival_id,artist_id,year",
+                    on_conflict="festival_id,artist_id,year,day,set_time_start",
                 ).execute()
                 total += 1
             except Exception as e:
@@ -465,7 +467,8 @@ def process_festival(
         if n_deleted:
             console.log(f"  [dim]Cleared {n_deleted} existing lineup entries")
 
-    n = write_lineup(supabase, festival_id, year, days, dry_run=False)
+    source = "ticketmaster" if "ticketmaster" in used_source else "setlistfm"
+    n = write_lineup(supabase, festival_id, year, days, dry_run=False, source=source)
     console.log(f"  [bold green]✓ {n} lineup entries written ({used_source})")
 
 
