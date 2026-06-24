@@ -19,6 +19,7 @@ create table if not exists festivals (
   state         text,
   country       text default 'US',
   venue         text,
+  timezone      text,                              -- IANA tz, e.g. 'America/Chicago' (added v2.3.3) — set times are stored local to this
   start_date    date,
   end_date      date,
   website_url   text,
@@ -73,9 +74,10 @@ create table if not exists lineups (
   year          int not null,
   stage         text,                              -- Main Stage, Perry's, etc.
   day           date,
-  set_time_start time,
+  set_time_start time,                             -- local to festivals.timezone
   set_time_end   time,
   is_headliner  boolean default false,
+  source        text,                              -- provenance/trust (added v2.3.3): official|wikipedia|ticketmaster|songkick|setlistfm|ocr|estimated
   created_at    timestamptz default now(),
   unique (festival_id, artist_id, year)
 );
@@ -317,3 +319,21 @@ $$ language plpgsql;
 create trigger artist_spotify_cache_expiry
   before insert or update on artist_spotify_cache
   for each row execute function set_artist_cache_expiry();
+
+-- Conflict policy (v2.3.3): a lower-trust writer must never clobber a verified
+-- lineup row. The ON CONFLICT DO UPDATE fires this; returning OLD no-ops the
+-- update for verified rows. One DB rule covers every writer.
+create or replace function protect_verified_lineups()
+returns trigger as $$
+begin
+  if old.source in ('official', 'wikipedia')
+     and (new.source is null or new.source not in ('official', 'wikipedia')) then
+    return old;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger lineups_protect_verified
+  before update on lineups
+  for each row execute function protect_verified_lineups();

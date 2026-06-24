@@ -11,6 +11,7 @@ export interface Festival {
   state: string | null;
   country: string | null;
   venue: string | null;
+  timezone: string | null; // IANA, e.g. "America/Chicago"; set times are local to this
   start_date: string | null; // ISO date
   end_date: string | null; // ISO date
   website_url: string | null;
@@ -59,9 +60,10 @@ export interface Lineup {
   year: number;
   stage: string | null;
   day: string | null; // ISO date
-  set_time_start: string | null;
+  set_time_start: string | null; // local to the festival's timezone
   set_time_end: string | null;
   is_headliner: boolean;
+  source: string | null; // provenance/trust: official|wikipedia|ticketmaster|songkick|setlistfm|ocr|estimated
   created_at: string;
 }
 

@@ -360,6 +360,7 @@ def write_lineup(
     year: int,
     days: list[dict],
     dry_run: bool,
+    source: str = "ticketmaster",
 ) -> int:
     total = 0
     for day in days:
@@ -388,6 +389,7 @@ def write_lineup(
                         "year": year,
                         "day": event_date,
                         "is_headliner": is_headliner,
+                        "source": source,
                     },
                     on_conflict="festival_id,artist_id,year",
                 ).execute()
@@ -465,7 +467,8 @@ def process_festival(
         if n_deleted:
             console.log(f"  [dim]Cleared {n_deleted} existing lineup entries")
 
-    n = write_lineup(supabase, festival_id, year, days, dry_run=False)
+    source = "ticketmaster" if "ticketmaster" in used_source else "setlistfm"
+    n = write_lineup(supabase, festival_id, year, days, dry_run=False, source=source)
     console.log(f"  [bold green]✓ {n} lineup entries written ({used_source})")
 
 

@@ -335,6 +335,7 @@ def write_schedule(
     year: int,
     entries: list[dict],
     dry_run: bool,
+    source: str = "ticketmaster",
 ) -> int:
     total = 0
     for entry in entries:
@@ -363,6 +364,7 @@ def write_schedule(
             "set_time_start": entry.get("set_start"),
             "set_time_end": entry.get("set_end"),
             "is_headliner": bool(entry.get("is_headliner", False)),
+            "source": source,
         }
         try:
             supabase.table("lineups").upsert(
@@ -432,7 +434,7 @@ def process_festival(
         return
     festival_id = festival_result.data[0]["id"]
 
-    n = write_schedule(supabase, festival_id, year, entries, dry_run=False)
+    n = write_schedule(supabase, festival_id, year, entries, dry_run=False, source=used_source)
     console.log(f"  [bold green]✓ {n} schedule entries written ({used_source})")
 
 

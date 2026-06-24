@@ -350,6 +350,7 @@ def upsert_lineup_entry(
         "set_time_start": entry["start"],
         "set_time_end": entry["end"],
         "is_headliner": entry["headliner"],
+        "source": "official",  # hand-curated official poster — verified
     }
     if dry_run:
         return
