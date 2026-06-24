@@ -2,96 +2,91 @@
 
 This file instructs Claude Code on how to work in this repository.
 
+> **Working model (read first):** all work follows the phase → segment → task
+> model in [`docs/WORKFLOW.md`](./docs/WORKFLOW.md). The active phase is **v2**;
+> its plan is [`docs/planning/v2/PLAN.md`](./docs/planning/v2/PLAN.md). Phases:
+> [`docs/ROADMAP.md`](./docs/ROADMAP.md). Docs index: [`docs/README.md`](./docs/README.md).
+
 ---
 
 ## Project Overview
 
-Festival Analyzer is an autonomous, pipeline-driven web app surfacing artist and lineup intelligence for US music festivals. It starts with Lollapalooza and scales to 200+ festivals.
+Festival Analyzer is an autonomous, pipeline-driven web app surfacing artist and
+lineup intelligence for US music festivals. It starts with Lollapalooza and scales
+to 200+ festivals.
 
 ## Stack Summary
 
 - **Frontend**: Next.js 14 (App Router), Tailwind CSS, Framer Motion
 - **Backend/DB**: Supabase (Postgres + auto-REST API)
 - **Pipeline**: Python 3.11 scripts, run on GitHub Actions cron
-- **Music APIs**: Spotify Web API, Apple Music API (MusicKit JS)
+- **Music APIs**: Spotify Web API (server-side sync worker → Supabase cache), Apple Music (MusicKit JS)
 - **Media**: Unsplash API
 - **AI**: Anthropic Claude API (fun facts generator)
 - **Hosting**: Vercel (frontend) + Supabase (data)
 
-## Key Files
+## Repo structure
 
-| File | Purpose |
-|------|---------|
-| `db/schema.sql` | Full database schema — run in Supabase SQL editor |
-| `pipeline/festival_scraper.py` | Scrapes Wikipedia → festivals table |
-| `pipeline/artist_enricher.py` | Spotify/Apple Music → artists table |
-| `pipeline/fun_facts_generator.py` | Claude API → fun_facts table |
-| `pipeline/media_fetcher.py` | Unsplash → media table |
-| `pipeline/feed_syncer.py` | IG + X posts → social_posts table |
-| `.github/workflows/etl_daily.yml` | Daily pipeline GitHub Actions |
-| `docs/UI_SPEC.md` | Full design system + component guide |
-| `docs/API_REFERENCE.md` | All external API details + setup |
+> **Flattened in v2.0.** The repo root **is** the Vercel project root; the old
+> nested `festival-analyzer/` wrapper is gone. v1 artifacts are frozen under
+> `docs/archive/v1/`.
+
+```
+/ (repo root = Vercel project root)
+├── app/  components/  lib/   ← Next.js frontend (no public/ yet — add when static assets exist)
+├── pipeline/                 ← Python ETL
+├── db/                       ← schema, seeds, migrations
+├── docs/                     ← see docs/README.md
+├── .github/workflows/        ← ci.yml (PR typecheck+build), etl_daily.yml (cron)
+├── vercel.json  CLAUDE.md  README.md
+```
+
+## Versioning & branches (summary — full rules in WORKFLOW.md)
+
+- `v[phase].[segment].[task]` — e.g. `v2.1.3`.
+- Phase = branch off `main` (`v2`). Segment = sub-branch off the phase (`v2.1-data-layer`). Task = a commit.
+- **Never commit to `main` directly.** Segments merge to their phase branch; only a closed phase merges to `main`.
+- Segment gates: build → test → `/qa` → `/code-review` → commit → merge to phase branch → delete sub-branch.
+- Prior work is frozen as **v1.0.0** under `docs/archive/v1/`.
 
 ## Conventions
 
 ### Python pipeline
-- All scripts accept `--festival {slug}` for targeted runs
-- Use `tenacity` for all external API calls (3 retries, exponential backoff)
-- Use `rich` for console output
-- Secrets via `python-dotenv` (`.env` file, never committed)
-- Upsert on conflict — scripts are idempotent and safe to re-run
+- All scripts accept `--festival {slug}` for targeted runs.
+- Use `tenacity` for all external API calls (3 retries, exponential backoff).
+- Use `rich` for console output.
+- Secrets via `python-dotenv` (`.env`, never committed).
+- Upsert on conflict — scripts are idempotent and safe to re-run.
 
 ### TypeScript / Next.js
-- App Router only (no Pages Router)
-- Server Components by default; `"use client"` only when needed (interactivity, localStorage)
-- All Supabase queries in `lib/supabase.ts` helpers — no raw fetches in components
-- Festival theme color derived at runtime from `festival.accent_color` (see `docs/UI_SPEC.md`)
-- Animations via Framer Motion; respect `prefers-reduced-motion`
+- App Router only (no Pages Router).
+- Server Components by default; `"use client"` only when needed (interactivity, localStorage).
+- All Supabase queries in `lib/` helpers — no raw fetches in components.
+- **No client-side Spotify calls** — the frontend reads cached artist data from Supabase only (see v2.2).
+- Festival theme color derived at runtime from `festival.accent_color`.
+- Animations via Framer Motion / View Transitions; respect `prefers-reduced-motion`.
+- Design language follows [`docs/design/DESIGN_DIRECTION.md`](./docs/design/DESIGN_DIRECTION.md) (system finalized in v2.5).
 
 ### Database
-- All writes go through the service role key (pipeline only)
-- Frontend uses anon key (public reads only, enforced by RLS)
-- New tables need RLS enabled + public read policy (see `db/schema.sql` pattern)
-- Migrations go in `db/migrations/` with timestamp prefix
+- All writes go through the service role key (pipeline/server only).
+- Frontend uses the anon key (public reads only, enforced by RLS).
+- New tables need RLS enabled + public-read policy.
+- Migrations go in `db/migrations/` with a timestamp prefix; additive and reversible.
+- External-API data (e.g. Spotify) is cached in dedicated cache tables with `fetched_at` + TTL.
 
-## Common Claude Code Tasks
+## Tooling
 
-### Add a new festival
-1. Add entry to `PRIORITY_FESTIVALS` in `pipeline/festival_scraper.py`
-2. Run `python pipeline/festival_scraper.py --festival "Festival Name"`
-3. Add seed data in `db/seed_{festival_slug}.sql`
-4. Add Unsplash search query in `pipeline/media_fetcher.py`
-
-### Add a new pipeline script
-1. Follow the pattern in `artist_enricher.py` (argparse, supabase client, retry logic)
-2. Add to `.github/workflows/etl_daily.yml` or create a new workflow
-
-### Add a new frontend page
-1. Create `frontend/app/{path}/page.tsx`
-2. Add to navigation in `frontend/components/Nav.tsx`
-3. Follow the festival theme pattern from `festival/[slug]/page.tsx`
-
-### Debugging pipeline locally
-```bash
-cd pipeline
-cp ../.env.example .env     # fill in your keys
-python festival_scraper.py --priority-only   # bootstrap top 6
-python artist_enricher.py --festival lollapalooza --year 2026
-python fun_facts_generator.py --festival lollapalooza --year 2026
-```
-
-## Phase Roadmap
-
-| Phase | Scope | Key work |
-|-------|-------|---------|
-| 1 | Lollapalooza | Full build: DB, pipeline, all 8 frontend pages, fun facts |
-| 2 | Top 6 festivals | Add Coachella, EDC, SXSW, Ultra, Gov Ball; test pipeline scale |
-| 3 | Full US list | Wikipedia scrape active, search scales via pg_trgm |
+- **Token efficiency:** RTK (auto via hook), caveman + ponytail modes on by default.
+- **Code navigation:** graphify (`graphify-out/`), context7 for library docs.
+- **QA/review:** `/qa`, `/code-review` (`ultra` for risky work), `/design-review`, chrome-devtools, playwright.
+- **Deploy:** Vercel (config in v2.0).
 
 ## Do Not
 
-- Do not commit `.env` files
-- Do not use the Supabase service role key in frontend code
-- Do not store Unsplash images locally — always use Unsplash CDN URLs
-- Do not make direct DB writes from the frontend — use the pipeline or Supabase functions
-- Do not hardcode festival data in components — always pull from Supabase
+- Do not commit `.env` files or any secret.
+- Do not use the Supabase service role key in frontend code.
+- Do not call the Spotify API from the client — read the Supabase cache.
+- Do not store Unsplash images locally — always use Unsplash CDN URLs.
+- Do not make direct DB writes from the frontend — use the pipeline or Supabase functions.
+- Do not hardcode festival data in components — always pull from Supabase.
+- Do not commit to `main` directly or merge a segment to `main` — follow `WORKFLOW.md`.
