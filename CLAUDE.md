@@ -27,18 +27,18 @@ to 200+ festivals.
 
 ## Repo structure
 
-> **Flatten executes in segment v2.0.** The app currently lives in nested
-> `festival-analyzer/`. The **target** structure below becomes real after v2.0;
-> until then, paths under `festival-analyzer/` still apply.
+> **Flattened in v2.0.** The repo root **is** the Vercel project root; the old
+> nested `festival-analyzer/` wrapper is gone. v1 artifacts are frozen under
+> `docs/archive/v1/`.
 
 ```
-/ (repo root = Vercel project root, post-v2.0)
-├── app/  components/  lib/  public/   ← Next.js frontend
-├── pipeline/                          ← Python ETL
-├── db/                                ← schema, seeds, migrations
-├── docs/                              ← see docs/README.md
-├── .github/workflows/
-├── CLAUDE.md  README.md
+/ (repo root = Vercel project root)
+├── app/  components/  lib/   ← Next.js frontend (no public/ yet — add when static assets exist)
+├── pipeline/                 ← Python ETL
+├── db/                       ← schema, seeds, migrations
+├── docs/                     ← see docs/README.md
+├── .github/workflows/        ← ci.yml (PR typecheck+build), etl_daily.yml (cron)
+├── vercel.json  CLAUDE.md  README.md
 ```
 
 ## Versioning & branches (summary — full rules in WORKFLOW.md)
