@@ -19,7 +19,7 @@ hand-edit live tables. One-shot bootstrap (schema + Lolla seed): `setup_supabase
 | `social_posts` | IG/X posts per festival | FK `festival_id`, `platform`, unique `(platform, post_id)` | `platform` checked in (`instagram`,`x`). |
 | `fun_facts` | AI facts per festival×year | FK `festival_id`, `facts jsonb`, unique `(festival_id, year)` | `facts` = array of `{fact, category}`. |
 | `tags` | Normalized tag registry | `slug` (unique), `type` | `type` ∈ genre/vibe/format/region/season. |
-| `artist_spotify_cache` | Cached Spotify data (TTL) | FK `artist_id` (unique), `fetched_at`, `ttl_seconds`, `expires_at` (generated) | Backing store for v2.2; frontend reads cache, never calls Spotify. |
+| `artist_spotify_cache` | Cached Spotify data (TTL) | FK `artist_id` (unique), `fetched_at`, `ttl_seconds`, `expires_at` (trigger-maintained) | Backing store for v2.2; frontend reads cache, never calls Spotify. |
 
 **View:** `v_upcoming_festivals` — active festivals from the last 30 days onward, for dashboard use.
 

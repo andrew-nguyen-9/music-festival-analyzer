@@ -133,7 +133,7 @@ export interface ArtistSpotifyCache {
   raw: unknown | null; // full Spotify payload
   fetched_at: string;
   ttl_seconds: number;
-  expires_at: string; // generated: fetched_at + ttl_seconds
+  expires_at: string; // trigger-maintained: fetched_at + ttl_seconds
   created_at: string;
   updated_at: string;
 }

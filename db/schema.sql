@@ -181,8 +181,7 @@ create table if not exists artist_spotify_cache (
   raw           jsonb,
   fetched_at    timestamptz not null default now(),
   ttl_seconds   int not null default 604800,         -- 7 days
-  expires_at    timestamptz generated always as
-                  (fetched_at + make_interval(secs => ttl_seconds)) stored,
+  expires_at    timestamptz,                          -- trigger-maintained: fetched_at + ttl_seconds
   created_at    timestamptz default now(),
   updated_at    timestamptz default now()
 );
@@ -303,5 +302,18 @@ create trigger festivals_updated_at before update on festivals
 create trigger artists_updated_at before update on artists
   for each row execute function set_updated_at();
 
-create trigger artist_spotify_cache_updated_at before update on artist_spotify_cache
-  for each row execute function set_updated_at();
+-- artist_spotify_cache maintains expires_at (= fetched_at + ttl_seconds) and
+-- updated_at via a trigger — timestamptz+interval is STABLE, so it can't be a
+-- GENERATED column.
+create or replace function set_artist_cache_expiry()
+returns trigger as $$
+begin
+  new.expires_at := new.fetched_at + make_interval(secs => new.ttl_seconds);
+  new.updated_at := now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger artist_spotify_cache_expiry
+  before insert or update on artist_spotify_cache
+  for each row execute function set_artist_cache_expiry();
