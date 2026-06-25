@@ -37,3 +37,20 @@ insert into sources (slug, name, adapter_type, adapter_key, config, trust, enabl
   name = excluded.name, config = excluded.config,
   adapter_type = excluded.adapter_type, adapter_key = excluded.adapter_key,
   trust = excluded.trust, enabled = excluded.enabled, updated_at = now();
+
+-- ── v3.2: festival-metadata aggregator ─────────────────────────
+-- One API source (not manual_config) that fills metadata for MANY festivals via the
+-- AggregatorAdapter (Ticketmaster Discovery + optional SeatGeek). Targets come from
+-- pipeline/festival_targets.csv; this row only carries provider config. Driven by
+-- `python ingest_festivals.py` (one ingestion_runs row per festival → per-festival
+-- freshness). trust='aggregator' = below curated/official; writes festivals only, so
+-- the v2.3.3 lineup trust triggers don't apply. Coalesce-forward merge fills gaps +
+-- replaces estimated dates, never clobbering curated metadata.
+insert into sources (slug, name, adapter_type, adapter_key, config, trust, enabled) values (
+  'festival-aggregator', 'Festival Metadata Aggregator (TM + SeatGeek)', 'api', 'aggregator',
+  $cfg${"providers": ["ticketmaster", "seatgeek"], "targets_file": "festival_targets.csv"}$cfg$::jsonb,
+  'aggregator', true
+) on conflict (slug) do update set
+  name = excluded.name, config = excluded.config,
+  adapter_type = excluded.adapter_type, adapter_key = excluded.adapter_key,
+  trust = excluded.trust, enabled = excluded.enabled, updated_at = now();
