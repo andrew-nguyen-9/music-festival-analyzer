@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { accentGradient } from "@/lib/festival-theme";
+import PreviewPlayer from "./PreviewPlayer";
 
 interface Props {
   src?: string | null;
@@ -13,6 +14,10 @@ interface Props {
   scrim?: boolean;
   /** Zoom on hover when the parent is a `group`. */
   hoverZoom?: boolean;
+  /** When present, shows a small audio micro-player overlay (v2.6.4). */
+  previewUrl?: string | null;
+  /** `view-transition-name` for the grid→detail morph (v2.6.2). */
+  vtName?: string;
 }
 
 /**
@@ -30,6 +35,8 @@ export default function Portrait({
   priority,
   scrim = true,
   hoverZoom,
+  previewUrl,
+  vtName,
 }: Props) {
   return (
     <>
@@ -40,7 +47,7 @@ export default function Portrait({
           fill
           priority={priority}
           sizes={sizes}
-          style={{ objectPosition: focal }}
+          style={{ objectPosition: focal, viewTransitionName: vtName }}
           className={
             "object-cover" +
             (hoverZoom
@@ -51,7 +58,7 @@ export default function Portrait({
       ) : (
         <div
           className="grid h-full w-full place-items-center"
-          style={{ backgroundImage: accentGradient(null) }}
+          style={{ backgroundImage: accentGradient(null), viewTransitionName: vtName }}
           aria-hidden
         >
           <span className="select-none text-display-md font-bold text-white/30">
@@ -60,6 +67,11 @@ export default function Portrait({
         </div>
       )}
       {scrim && <div className="hero-scrim absolute inset-0 opacity-90" />}
+      {previewUrl && (
+        <div className="absolute right-2 top-2 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <PreviewPlayer previewUrl={previewUrl} label={alt} size="sm" />
+        </div>
+      )}
     </>
   );
 }

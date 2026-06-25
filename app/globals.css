@@ -126,3 +126,22 @@ body.cursor-none,
 body.cursor-none * {
   cursor: none !important;
 }
+
+/* ── A11y: visible keyboard focus everywhere (v2.6.5) ─────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── View Transitions morph tuning + reduced-motion guard (v2.6.2/2.6.5) ── */
+::view-transition-group(root) {
+  animation-duration: var(--dur-morph);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

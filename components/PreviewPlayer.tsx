@@ -6,6 +6,8 @@ interface Props {
   previewUrl: string;
   /** Accessible label, e.g. the track or artist name. */
   label: string;
+  /** "md" = 44px hero pill (default), "sm" = 32px tile affordance. */
+  size?: "sm" | "md";
   className?: string;
 }
 
@@ -15,40 +17,56 @@ interface Props {
 let current: HTMLAudioElement | null = null;
 
 /**
- * 30s audio micro-player for Spotify preview snippets (v2.4.3). Hover/long-press
- * wiring lands in v2.6; this is the self-contained play/pause primitive both use.
- * Renders nothing useful without a previewUrl — callers gate on it.
+ * 30s audio micro-player for Spotify preview snippets (v2.4 / wired into tiles in
+ * v2.6). The Audio object is created lazily on first play, not on mount, so a grid
+ * of these stays cheap. Callers gate on a present previewUrl.
  */
-export default function PreviewPlayer({ previewUrl, label, className }: Props) {
+export default function PreviewPlayer({
+  previewUrl,
+  label,
+  size = "md",
+  className,
+}: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
+  // Tear down on unmount / url change — but never create eagerly.
   useEffect(() => {
-    const audio = new Audio(previewUrl);
-    audio.preload = "none";
-    audioRef.current = audio;
-    const onEnd = () => setPlaying(false);
-    audio.addEventListener("ended", onEnd);
-    audio.addEventListener("pause", onEnd);
     return () => {
-      audio.removeEventListener("ended", onEnd);
-      audio.removeEventListener("pause", onEnd);
-      audio.pause();
-      if (current === audio) current = null;
+      const a = audioRef.current;
+      if (a) {
+        a.pause();
+        if (current === a) current = null;
+      }
+      audioRef.current = null;
     };
   }, [previewUrl]);
 
-  function toggle() {
-    const audio = audioRef.current;
-    if (!audio) return;
+  function toggle(e: React.MouseEvent) {
+    e.preventDefault(); // tiles wrap these in a Link — don't navigate.
+    e.stopPropagation();
+    let audio = audioRef.current;
+    if (!audio) {
+      audio = new Audio(previewUrl);
+      audio.preload = "none";
+      audio.addEventListener("ended", () => setPlaying(false));
+      audio.addEventListener("pause", () => setPlaying(false));
+      audioRef.current = audio;
+    }
     if (playing) {
       audio.pause();
       return;
     }
     if (current && current !== audio) current.pause();
     current = audio;
-    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    void audio
+      .play()
+      .then(() => setPlaying(true))
+      .catch(() => setPlaying(false));
   }
+
+  const dim = size === "sm" ? "h-8 w-8" : "h-11 w-11";
+  const icon = size === "sm" ? 14 : 18;
 
   return (
     <button
@@ -57,25 +75,25 @@ export default function PreviewPlayer({ previewUrl, label, className }: Props) {
       aria-pressed={playing}
       aria-label={`${playing ? "Pause" : "Play"} 30-second preview of ${label}`}
       className={
-        "inline-flex h-11 w-11 items-center justify-center rounded-full bg-accent text-black transition-transform hover:scale-105 active:scale-95 " +
+        `inline-flex ${dim} items-center justify-center rounded-full bg-accent text-black shadow transition-transform hover:scale-105 active:scale-95 ` +
         (className ?? "")
       }
     >
-      {playing ? <PauseIcon /> : <PlayIcon />}
+      {playing ? <PauseIcon s={icon} /> : <PlayIcon s={icon} />}
     </button>
   );
 }
 
-function PlayIcon() {
+function PlayIcon({ s }: { s: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M8 5v14l11-7z" />
     </svg>
   );
 }
-function PauseIcon() {
+function PauseIcon({ s }: { s: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
       <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
     </svg>
   );

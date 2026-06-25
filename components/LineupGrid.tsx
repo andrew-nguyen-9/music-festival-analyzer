@@ -1,7 +1,7 @@
-import Link from "next/link";
 import Reveal from "./Reveal";
 import EmptyState from "./EmptyState";
 import Portrait from "./Portrait";
+import ViewTransitionLink from "./ViewTransitionLink";
 import type { LineupEntry } from "@/lib/types";
 
 interface Props {
@@ -63,7 +63,8 @@ function ArtistTile({ entry }: { entry: LineupEntry }) {
   const { artist } = entry;
   const img = artist.image_url ?? artist.header_image_url;
   return (
-    <Link
+    <ViewTransitionLink
+      morph
       href={`/artist/${artist.slug}`}
       className="group relative block overflow-hidden rounded-xl border border-white/10 bg-surface-elevated"
     >
@@ -73,6 +74,7 @@ function ArtistTile({ entry }: { entry: LineupEntry }) {
           alt={artist.name}
           sizes="(max-width: 640px) 50vw, 25vw"
           hoverZoom
+          previewUrl={artist.preview_url}
         />
         {entry.is_headliner && (
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
@@ -95,6 +97,6 @@ function ArtistTile({ entry }: { entry: LineupEntry }) {
           )}
         </div>
       </div>
-    </Link>
+    </ViewTransitionLink>
   );
 }
