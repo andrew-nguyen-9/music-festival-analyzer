@@ -3,17 +3,24 @@
 import { useState } from "react";
 import { listFavorites } from "@/lib/favorites";
 import { createPlaylistWithTracks } from "@/lib/playlist";
+import { fmtDayLabel } from "@/lib/format";
 import {
   isSpotifyConfigured,
   getSpotifyToken,
   loginWithSpotify,
 } from "@/lib/spotify-auth";
 
+export interface DayGroup {
+  /** ISO date, or "TBD" when the festival has no day-level schedule. */
+  key: string;
+  artistIds: string[];
+}
+
 interface Props {
   festivalName: string;
   year: number;
-  /** Artist ids in this festival's lineup — favorites are intersected with these. */
-  lineupArtistIds: string[];
+  /** Lineup artist ids grouped by festival day (v2.11.2). */
+  days: DayGroup[];
 }
 
 type State =
@@ -22,16 +29,26 @@ type State =
   | { kind: "done"; url: string; count: number }
   | { kind: "error"; msg: string };
 
+function dayLabel(key: string): string {
+  return key === "TBD" ? "this lineup" : fmtDayLabel(key);
+}
+
 /**
- * "Make my {festival} playlist" (v2.9.4). Turns the artists you've starred who
- * are playing this festival into a real Spotify playlist in one action. Scope is
- * per-festival (the chosen default). Logs in via PKCE on demand.
+ * "Make my {day} playlist" (v2.11.2). Turns the artists you've starred who are
+ * playing a given festival day into a real Spotify playlist in one action.
+ * Scope is per-day when the festival has a day-level schedule, falling back to
+ * the whole lineup otherwise. Logs in via PKCE on demand.
  */
 export default function SmartPlaylistButton({
   festivalName,
   year,
-  lineupArtistIds,
+  days,
 }: Props) {
+  const realDays = days.filter((d) => d.key !== "TBD");
+  const perDay = realDays.length >= 2;
+  const [selected, setSelected] = useState<string>(
+    (perDay ? realDays[0]?.key : days[0]?.key) ?? "TBD",
+  );
   const [state, setState] = useState<State>({ kind: "idle" });
 
   if (!isSpotifyConfigured()) {
@@ -42,15 +59,28 @@ export default function SmartPlaylistButton({
     );
   }
 
+  // Artists in scope: the selected day (per-day mode) or the whole lineup.
+  const activeIds = perDay
+    ? days.find((d) => d.key === selected)?.artistIds ?? []
+    : days.flatMap((d) => d.artistIds);
+
+  const scopeLabel = perDay ? dayLabel(selected) : festivalName;
+  const playlistName = perDay
+    ? `${festivalName} — ${dayLabel(selected)}`
+    : `${festivalName} ${year} — My Picks`;
+  const playlistDesc = perDay
+    ? `Your starred ${festivalName} artists playing ${dayLabel(selected)}, via Festival Analyzer.`
+    : `Your starred ${festivalName} artists, via Festival Analyzer.`;
+
   async function run() {
     setState({ kind: "working", msg: "Gathering your starred artists…" });
     try {
       const favs = await listFavorites();
-      const inLineup = favs.filter((f) => lineupArtistIds.includes(f.id));
-      if (inLineup.length === 0) {
+      const inScope = favs.filter((f) => activeIds.includes(f.id));
+      if (inScope.length === 0) {
         setState({
           kind: "error",
-          msg: "Star a few artists in this lineup first, then try again.",
+          msg: `Star a few artists playing ${scopeLabel} first, then try again.`,
         });
         return;
       }
@@ -70,7 +100,7 @@ export default function SmartPlaylistButton({
       const res = await fetch("/api/playlist-tracks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artistIds: inLineup.map((f) => f.id) }),
+        body: JSON.stringify({ artistIds: inScope.map((f) => f.id) }),
       });
       const { uris } = (await res.json()) as { uris: string[] };
       if (!uris || uris.length === 0) {
@@ -84,8 +114,8 @@ export default function SmartPlaylistButton({
       setState({ kind: "working", msg: "Creating your playlist…" });
       const { url, trackCount } = await createPlaylistWithTracks(
         token,
-        `${festivalName} ${year} — My Picks`,
-        `Your starred ${festivalName} artists, via Festival Analyzer.`,
+        playlistName,
+        playlistDesc,
         uris,
       );
       setState({ kind: "done", url, count: trackCount });
@@ -108,13 +138,35 @@ export default function SmartPlaylistButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex flex-col items-start gap-3">
+      {perDay && (
+        <div className="flex flex-wrap gap-2">
+          {realDays.map((d) => (
+            <button
+              key={d.key}
+              onClick={() => {
+                setSelected(d.key);
+                setState({ kind: "idle" });
+              }}
+              className={`rounded-full px-4 py-1.5 text-label font-semibold transition-all ${
+                selected === d.key
+                  ? "bg-accent text-black"
+                  : "border border-white/20 text-white/60 hover:border-white/40 hover:text-white"
+              }`}
+            >
+              {dayLabel(d.key)}
+            </button>
+          ))}
+        </div>
+      )}
       <button
         onClick={run}
         disabled={state.kind === "working"}
         className="inline-flex items-center gap-2 rounded-full bg-[#1DB954] px-6 py-3 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.02] disabled:opacity-60"
       >
-        {state.kind === "working" ? state.msg : `Make my ${festivalName} playlist`}
+        {state.kind === "working"
+          ? state.msg
+          : `Make my ${perDay ? dayLabel(selected) : festivalName} playlist`}
       </button>
       {state.kind === "error" && (
         <p className="text-label text-amber-400">{state.msg}</p>
