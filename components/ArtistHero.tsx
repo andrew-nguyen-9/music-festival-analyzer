@@ -18,6 +18,7 @@ export default function ArtistHero({ artist }: Props) {
         sizes="100vw"
         priority
         scrim={false}
+        vtName="vt-portrait"
       />
       {/* Bottom + side gradients blend the image into the page */}
       <div className="hero-scrim absolute inset-0" />

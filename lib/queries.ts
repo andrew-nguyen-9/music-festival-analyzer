@@ -40,9 +40,10 @@ const FESTIVAL_CARD =
 /** Festival detail page adds the long-form / secondary fields. */
 const FESTIVAL_FULL = `${FESTIVAL_CARD}, country, venue, website_url, description`;
 
-/** Artist fields a lineup card renders — no bio/blobs (851-row join). */
+/** Artist fields a lineup card renders — no bio/blobs (851-row join).
+ *  preview_url powers the tile hover micro-player (v2.6.4). */
 const ARTIST_CARD =
-  "id, slug, name, genres, image_url, header_image_url, spotify_popularity, spotify_followers";
+  "id, slug, name, genres, image_url, header_image_url, spotify_popularity, spotify_followers, preview_url";
 /** Artist detail page adds bio, links, preview, origin. */
 const ARTIST_FULL =
   "id, slug, name, bio, genres, origin_city, origin_country, website_url, spotify_id, spotify_url, spotify_followers, spotify_popularity, preview_url, image_url, header_image_url";

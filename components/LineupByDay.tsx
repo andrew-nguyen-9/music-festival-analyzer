@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import Reveal from "./Reveal";
 import Portrait from "./Portrait";
+import ViewTransitionLink from "./ViewTransitionLink";
 import { hasMultipleWeekends, groupLineupByDay } from "@/lib/format";
 import type { LineupEntry } from "@/lib/types";
 
@@ -174,7 +174,8 @@ function DayArtistTile({ entry, isHeadliner }: { entry: LineupEntry; isHeadliner
   const img = artist.image_url ?? artist.header_image_url;
 
   return (
-    <Link
+    <ViewTransitionLink
+      morph
       href={`/artist/${artist.slug}`}
       className="group relative block overflow-hidden rounded-xl border border-white/10 bg-surface-elevated"
     >
@@ -184,6 +185,7 @@ function DayArtistTile({ entry, isHeadliner }: { entry: LineupEntry; isHeadliner
           alt={artist.name}
           sizes="(max-width: 640px) 50vw, 25vw"
           hoverZoom
+          previewUrl={artist.preview_url}
         />
         {isHeadliner && (
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
@@ -209,6 +211,6 @@ function DayArtistTile({ entry, isHeadliner }: { entry: LineupEntry; isHeadliner
           )}
         </div>
       </div>
-    </Link>
+    </ViewTransitionLink>
   );
 }

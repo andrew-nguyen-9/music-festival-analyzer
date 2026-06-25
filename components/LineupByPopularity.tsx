@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import Reveal from "./Reveal";
 import Portrait from "./Portrait";
+import ViewTransitionLink from "./ViewTransitionLink";
 import type { LineupEntry } from "@/lib/types";
 
 interface Props {
@@ -64,7 +64,8 @@ function ArtistCard({ entry, large = false }: { entry: LineupEntry; large?: bool
   const img = artist.image_url ?? artist.header_image_url;
 
   return (
-    <Link
+    <ViewTransitionLink
+      morph
       href={`/artist/${artist.slug}`}
       className="group relative block overflow-hidden rounded-xl border border-white/10 bg-surface-elevated"
     >
@@ -74,6 +75,7 @@ function ArtistCard({ entry, large = false }: { entry: LineupEntry; large?: bool
           alt={artist.name}
           sizes={large ? "(max-width: 640px) 100vw, 33vw" : "(max-width: 640px) 50vw, 25vw"}
           hoverZoom
+          previewUrl={artist.preview_url}
         />
         {large && (
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
@@ -91,6 +93,6 @@ function ArtistCard({ entry, large = false }: { entry: LineupEntry; large?: bool
           )}
         </div>
       </div>
-    </Link>
+    </ViewTransitionLink>
   );
 }
