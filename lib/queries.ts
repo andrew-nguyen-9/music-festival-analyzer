@@ -342,40 +342,33 @@ export function withSpotifyCache(
 }
 
 /**
- * Spotify track URIs for the given artists, drawn from the v2.2 cache's
- * top_tracks (v2.9.2). We read cached tracks — not a live /artists/top-tracks
- * call (removed in the 2026 API). Shape of top_tracks is defensive: prefer a
- * `uri`, fall back to building one from `id`. Returns [] when nothing is cached.
+ * Spotify artist ids for the given internal artist ids, from the v2.2 cache.
+ * The smart-playlist flow resolves top tracks client-side with the user's PKCE
+ * token (the app/client-credentials token is 403'd from /artists/top-tracks),
+ * so the server only needs to hand back the matched Spotify ids. Deduped;
+ * returns [] when none are matched/cached.
  */
-export async function getTopTrackUris(
+export async function getArtistSpotifyIds(
   artistIds: string[],
-  perArtist = 5,
 ): Promise<string[]> {
   const sb = getSupabase();
   if (!sb || artistIds.length === 0) return [];
   try {
     const { data, error } = await sb
       .from("artist_spotify_cache")
-      .select("artist_id, top_tracks")
-      .in("artist_id", artistIds);
+      .select("spotify_id")
+      .in("artist_id", artistIds)
+      .not("spotify_id", "is", null);
     if (error) throw error;
-    const uris: string[] = [];
-    for (const row of (data as { top_tracks: unknown }[]) ?? []) {
-      const tracks = Array.isArray(row.top_tracks) ? row.top_tracks : [];
-      for (const t of tracks.slice(0, perArtist)) {
-        const track = t as { uri?: unknown; id?: unknown };
-        const uri =
-          typeof track.uri === "string"
-            ? track.uri
-            : typeof track.id === "string"
-              ? `spotify:track:${track.id}`
-              : null;
-        if (uri) uris.push(uri);
-      }
-    }
-    return uris;
+    return Array.from(
+      new Set(
+        ((data as { spotify_id: string | null }[]) ?? [])
+          .map((r) => r.spotify_id)
+          .filter((x): x is string => Boolean(x)),
+      ),
+    );
   } catch (e) {
-    warn("getTopTrackUris", e);
+    warn("getArtistSpotifyIds", e);
     return [];
   }
 }
