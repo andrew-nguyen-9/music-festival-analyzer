@@ -7,7 +7,7 @@ A bird's-eye view of every phase. Detail for the active phase lives in
 |-------|---------|-------|-------|
 | 1 | `v1.0.0` | Initial build — Lollapalooza, pipeline, 3 page templates, Supabase wiring | **Frozen / archived** (`docs/archive/v1/`) |
 | 2 | `v2.0.0` | Productionize + reinvent — deploy, Spotify, accurate data, bold redesign, PWA, killer features | **Shipped / archived** (`docs/archive/v2/`) |
-| 3 | `v3.x` | Scale + intelligence — more festivals, search at scale, recommendations | Next (stub: `docs/planning/v3/`, seed: `docs/brainstorm/v3-backlog.md`) |
+| 3 | `v3.x` | Scale + intelligence — 200+ festivals, search at scale, accounts, recommendations, personalization | **Planned** → `docs/planning/v3/PLAN.md` (14 segments) |
 
 ---
 
@@ -48,10 +48,30 @@ were merged-then-tracked as post-ship follow-ups in
 record (PLAN, PHASE_QA, audits) is archived under
 [`docs/archive/v2/`](./archive/v2/).
 
-## v3.x — scale + intelligence (next)
+## v3.x — scale + intelligence (planned)
 
-Seeded at v2 close-out (gate **h**) — see [`docs/brainstorm/v3-backlog.md`](./brainstorm/v3-backlog.md)
-for the carried-over follow-ups and themes; [`docs/planning/v3/PLAN.md`](./planning/v3/PLAN.md)
-is a stub to be fleshed out at the v3 kickoff. Likely themes: many-festival ingestion,
-`pg_trgm` search at scale, artist recommendations, a user-data backend (favorites
-server-sync), and social/editorial depth.
+Full breakdown in [`docs/planning/v3/PLAN.md`](./planning/v3/PLAN.md) — **14
+dependency-ordered segments** (v3.0–v3.13). North star: v2 made one festival
+excellent; v3 makes 200+ festivals excellent and makes the product smart about
+each user.
+
+```
+v3.0  Foundation & ingestion framework   generalized schema + source-adapter pipeline
+v3.1  Data quality & backfill            clear v2 debt; validation as a CI gate
+v3.2  Multi-festival ingestion at scale  200+ festivals via adapters + source registry
+v3.3  Search at scale                    pg_trgm/FTS, ranked, typo-tolerant, UI + API
+v3.4  Accounts & user-data backend       Supabase Auth; favorites/playlists synced
+v3.5  Spotify deepening                  finish playlist e2e; import top artists
+v3.6  Recommendations engine             artist similarity + per-user lineup/festival recs
+v3.7  Discovery & personalization UI     "for you" home, recommended festivals
+v3.8  Notifications & engagement         lineup-change + set-time + favorite alerts
+v3.9  Social & editorial depth           guides, spotlights, shareable cards
+v3.10 Performance at scale               ISR/caching, image pipeline, latency budgets
+v3.11 Observability & reliability        freshness dashboards, error tracking, alerting
+v3.12 Deploy-gated verification          v2 carryover (Lighthouse/canary/PWA/Spotify) → CI gates
+v3.13 Phase finalize                     close gates → merge to main, tag v3.0.0, seed v4
+```
+
+Seed + carried-over follow-ups: [`docs/brainstorm/v3-backlog.md`](./brainstorm/v3-backlog.md).
+Open decisions (auth provider, source strategy, recs approach, notification
+channel, festival scope) are flagged in the PLAN for the v3 kickoff.
