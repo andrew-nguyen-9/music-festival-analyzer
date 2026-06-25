@@ -40,6 +40,26 @@ were tracked rather than blocking the v2 → main merge (see
   domain) but the v2.11 close-out answer said vercel.app subdomain. Reconcile which
   is canonical (affects the Spotify redirect URI when v2.9 is enabled).
 
+## Data quality (surfaced by the v2.3 live rollout)
+`scripts/finish_v2.sh`'s live validation gate flagged real data debt on the
+seeded non-Lolla festivals. Lollapalooza (the shipped festival) is clean; these
+are mostly stub rows for the v3 many-festival push.
+
+- **~22 festivals missing start/end dates** and not flagged `dates_estimated`
+  (e.g. dreamstate, carolina-country-music-fest, rolling-loud-california,
+  fyf-fest, panorama, pemberton, …). Either backfill real dates during v3
+  ingestion or flag genuinely-TBA ones: `update festivals set dates_estimated =
+  true where start_date is null and end_date is null;`. `validate_data.py`
+  reports the full list.
+- **2 festivals missing coordinates** — `boots-hearts`, `punk-in-drublic`. The
+  geocoder skipped them (no usable location). Add a venue/location, then re-run
+  `location_enricher.py`.
+- **2 artist duplicate groups** from accent-folding before the v2.3.2 slug fix:
+  `ADÉLA`/`Adéla` → `adela`, `Røz`/`Röz` → `roz`. Merge each: repoint
+  `lineups.artist_id` + `artist_spotify_cache.artist_id` to the keeper (the row
+  with a `spotify_id`/cache), then delete the dupe. `dedupe_artists.py` reports
+  them; the mangled-slug rows are the dupes, so a plain slug rename collides.
+
 ## Scale + intelligence themes
 - Many-festival ingestion (toward 200+ festivals).
 - `pg_trgm` search at scale.
