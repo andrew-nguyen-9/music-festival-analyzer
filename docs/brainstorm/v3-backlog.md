@@ -15,8 +15,12 @@ were tracked rather than blocking the v2 → main merge (see
 - **PWA install + offline** — installs on HTTPS prod; schedule/lineup usable
   offline; service worker caches as designed (v2.7).
 - **Spotify playlists e2e** — full PKCE login → real per-day playlist in a user's
-  library. Requires enabling v2.9 in prod: set `NEXT_PUBLIC_SPOTIFY_CLIENT_ID` and
-  register `${origin}/spotify/callback` as the redirect URI. (Shipped disabled.)
+  library. Enabling v2.9 in prod needs **two** things, not one: (1) set
+  `NEXT_PUBLIC_SPOTIFY_CLIENT_ID` + register `${origin}/spotify/callback`, and
+  (2) **re-run `spotify_sync.py`** so `artist_spotify_cache.top_tracks` is
+  populated — until v2.11's bug_001 fix it was hard-coded null, so the button
+  errored with "No cached tracks". The fix is shipped but unverified against live
+  Spotify; a sync run + one playlist creation confirms it. (Shipped disabled.)
 - **Prod artist-slug resolution** — local QA hit 404s on `/artist/<id-hash>` links
   (local snapshot had unresolvable slugs). Verify lineup → artist links resolve on
   prod data, and that the new square-portrait hero renders with real images.
