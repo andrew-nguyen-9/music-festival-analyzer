@@ -1,5 +1,5 @@
-import Image from "next/image";
-import { accentGradient } from "@/lib/festival-theme";
+import Portrait from "./Portrait";
+import PreviewPlayer from "./PreviewPlayer";
 import { formatCount } from "@/lib/format";
 import type { Artist } from "@/lib/types";
 
@@ -11,22 +11,14 @@ export default function ArtistHero({ artist }: Props) {
   const img = artist.header_image_url ?? artist.image_url;
   return (
     <section className="relative flex min-h-[70vh] flex-col justify-end overflow-hidden">
-      {img ? (
-        <Image
-          src={img}
-          alt={artist.name}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-top"
-        />
-      ) : (
-        <div
-          className="absolute inset-0"
-          style={{ backgroundImage: accentGradient("#7B2FBE") }}
-          aria-hidden
-        />
-      )}
+      <Portrait
+        src={img}
+        alt={artist.name}
+        focal="50% 22%"
+        sizes="100vw"
+        priority
+        scrim={false}
+      />
       {/* Bottom + side gradients blend the image into the page */}
       <div className="hero-scrim absolute inset-0" />
       <div className="absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-black/70 to-transparent" aria-hidden />
@@ -38,7 +30,16 @@ export default function ArtistHero({ artist }: Props) {
             {artist.genres.slice(0, 3).join(" · ")}
           </p>
         )}
-        <h1 className="text-display-xl text-white">{artist.name}</h1>
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <h1 className="text-display-xl text-white">{artist.name}</h1>
+          {artist.preview_url && (
+            <PreviewPlayer
+              previewUrl={artist.preview_url}
+              label={artist.name}
+              className="mb-2 shrink-0"
+            />
+          )}
+        </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-6 text-white/85">
           {artist.spotify_followers != null && (

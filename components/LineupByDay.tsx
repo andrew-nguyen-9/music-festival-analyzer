@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import Reveal from "./Reveal";
-import { accentGradient } from "@/lib/festival-theme";
+import Portrait from "./Portrait";
 import { hasMultipleWeekends, groupLineupByDay } from "@/lib/format";
 import type { LineupEntry } from "@/lib/types";
 
@@ -180,22 +179,12 @@ function DayArtistTile({ entry, isHeadliner }: { entry: LineupEntry; isHeadliner
       className="group relative block overflow-hidden rounded-xl border border-white/10 bg-surface-elevated"
     >
       <div className="relative aspect-square w-full overflow-hidden">
-        {img ? (
-          <Image
-            src={img}
-            alt={artist.name}
-            fill
-            sizes="(max-width: 640px) 50vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div
-            className="h-full w-full"
-            style={{ backgroundImage: accentGradient(null) }}
-            aria-hidden
-          />
-        )}
-        <div className="hero-scrim absolute inset-0 opacity-90" />
+        <Portrait
+          src={img}
+          alt={artist.name}
+          sizes="(max-width: 640px) 50vw, 25vw"
+          hoverZoom
+        />
         {isHeadliner && (
           <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
             Headliner
