@@ -3,8 +3,11 @@
 This file instructs Claude Code on how to work in this repository.
 
 > **Working model (read first):** all work follows the phase → segment → task
-> model in [`docs/WORKFLOW.md`](./docs/WORKFLOW.md). The active phase is **v2**;
-> its plan is [`docs/planning/v2/PLAN.md`](./docs/planning/v2/PLAN.md). Phases:
+> model in [`docs/WORKFLOW.md`](./docs/WORKFLOW.md). **v2 shipped as `v2.0.0`**
+> (archived under [`docs/archive/v2/`](./docs/archive/v2/)). The next phase is
+> **v3** — stub at [`docs/planning/v3/PLAN.md`](./docs/planning/v3/PLAN.md),
+> backlog seed at [`docs/brainstorm/v3-backlog.md`](./docs/brainstorm/v3-backlog.md);
+> cut the v3 phase branch off `main` before starting work. Phases:
 > [`docs/ROADMAP.md`](./docs/ROADMAP.md). Docs index: [`docs/README.md`](./docs/README.md).
 
 ---

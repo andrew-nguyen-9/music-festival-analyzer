@@ -8,7 +8,8 @@ Start here. This index maps the whole `docs/` tree.
 - [`DEPLOYMENT.md`](./DEPLOYMENT.md) — Vercel Git integration, env vars, domain, live verification.
 
 ## Planning (per phase)
-- [`planning/v2/PLAN.md`](./planning/v2/PLAN.md) — active phase: every segment, its tasks, dependencies, exit criteria.
+- [`planning/v3/PLAN.md`](./planning/v3/PLAN.md) — next phase (stub, fleshed out at v3 kickoff).
+- [`archive/v2/PLAN.md`](./archive/v2/PLAN.md) — v2 (shipped `v2.0.0`): every segment, its tasks, dependencies, exit criteria. Frozen.
 
 ## Design
 - [`design/DESIGN_DIRECTION.md`](./design/DESIGN_DIRECTION.md) — v2 redesign brief (investigative-journalism direction); expanded into a full system in segment v2.5.

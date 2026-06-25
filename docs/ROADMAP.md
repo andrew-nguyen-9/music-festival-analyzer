@@ -6,8 +6,8 @@ A bird's-eye view of every phase. Detail for the active phase lives in
 | Phase | Version | Theme | State |
 |-------|---------|-------|-------|
 | 1 | `v1.0.0` | Initial build — Lollapalooza, pipeline, 3 page templates, Supabase wiring | **Frozen / archived** (`docs/archive/v1/`) |
-| 2 | `v2.x` | Productionize + reinvent — deploy, Spotify, accurate data, bold redesign, PWA, killer features | **Active** → `docs/planning/v2/PLAN.md` |
-| 3 | `v3.x` | Scale + intelligence — more festivals, search at scale, recommendations | Backlog (seeded from v2 close-out brainstorm) |
+| 2 | `v2.0.0` | Productionize + reinvent — deploy, Spotify, accurate data, bold redesign, PWA, killer features | **Shipped / archived** (`docs/archive/v2/`) |
+| 3 | `v3.x` | Scale + intelligence — more festivals, search at scale, recommendations | Next (stub: `docs/planning/v3/`, seed: `docs/brainstorm/v3-backlog.md`) |
 
 ---
 
@@ -30,25 +30,28 @@ v2.0  Foundation        flatten repo, clean, .github/Vercel, first live deploy  
 v2.1  Data layer        Supabase audit, RLS/indexes, query consolidation, cache tables  ✅ done
 v2.2  Spotify sync      server sync worker → Supabase cache (2026 API reality)   ✅ done
 v2.3  Pipeline accuracy accurate lineups / dates / locations                     ✅ done (live rollout pending)
-v2.4  Artist page       rebuild, portrait normalization, richer content          ✅ done
+v2.4  Artist page       rebuild + square-portrait hero (reframed in v2.11)       ✅ done
 v2.5  Design system     investigative-journalism direction → new design language ✅ done ("The Dossier")
 v2.6  UI rebuild        apply redesign, View Transitions, predictive prefetch     ✅ done
 v2.7  PWA / offline      SWR service worker, IndexedDB, installable                ✅ done
 v2.8  Phone background   day schedule + stage locations → shareable image          ✅ done (client canvas)
-v2.9  Smart playlists    favorited artists → auto Spotify playlist                  ✅ done (PKCE)
-v2.10 Edge + perf        Core Web Vitals (next/font), web-vitals reporting, close-out ✅ done (code)
-v2.11 Phase finalize     resolve open decisions, run phase-close gates → merge to main  ⬜ not started
+v2.9  Smart playlists    favorited artists → per-day Spotify playlist (v2.11)       ✅ done (PKCE)
+v2.10 Edge + perf        Core Web Vitals (next/font), web-vitals reporting, close-out ✅ done
+v2.11 Phase finalize     square portrait + per-day playlists + postcss; close gates → merge to main ✅ done
 ```
 
-**Progress:** v2.0–v2.10 code complete (11 of 12). Code for every feature segment
-is merged to `v2` and builds green (typecheck + `next build`). What remains is
-**deploy/secret-gated verification and v2.11** — see
-[`docs/planning/v2/PHASE_QA.md`](./planning/v2/PHASE_QA.md) for the checklist of
-what still needs a live environment (Spotify app creds, a deploy, Lighthouse,
-canary) plus the open product decisions defaults taken autonomously. `main` stays
-frozen until v2.11 closes the phase.
+**Progress:** v2.0–v2.11 complete (12 of 12) — phase **shipped as v2.0.0** and
+merged to `main`. The deploy/secret/browser-gated checks (live Lighthouse/Web
+Vitals, `/canary`, PWA install, full Spotify e2e, prod artist-slug verification)
+were merged-then-tracked as post-ship follow-ups in
+[`docs/brainstorm/v3-backlog.md`](./brainstorm/v3-backlog.md). The v2 close-out
+record (PLAN, PHASE_QA, audits) is archived under
+[`docs/archive/v2/`](./archive/v2/).
 
-## v3.x — scale + intelligence (backlog)
+## v3.x — scale + intelligence (next)
 
-Direction only; finalized at v2 close-out (gate **h**). Likely themes: many-festival
-ingestion, `pg_trgm` search at scale, artist recommendations, social/editorial depth.
+Seeded at v2 close-out (gate **h**) — see [`docs/brainstorm/v3-backlog.md`](./brainstorm/v3-backlog.md)
+for the carried-over follow-ups and themes; [`docs/planning/v3/PLAN.md`](./planning/v3/PLAN.md)
+is a stub to be fleshed out at the v3 kickoff. Likely themes: many-festival ingestion,
+`pg_trgm` search at scale, artist recommendations, a user-data backend (favorites
+server-sync), and social/editorial depth.

@@ -98,7 +98,8 @@ upsert idempotently (safe to re-run). Key scripts: `festival_scraper.py`,
 ## Working model
 
 All work follows the `v[phase].[segment].[task]` model in
-[`docs/WORKFLOW.md`](./docs/WORKFLOW.md). Active phase: **v2** — plan in
-[`docs/planning/v2/PLAN.md`](./docs/planning/v2/PLAN.md), all phases in
+[`docs/WORKFLOW.md`](./docs/WORKFLOW.md). **v2 shipped as `v2.0.0`** (archived under
+[`docs/archive/v2/`](./docs/archive/v2/)); next phase is **v3** (stub in
+[`docs/planning/v3/`](./docs/planning/v3/)). All phases in
 [`docs/ROADMAP.md`](./docs/ROADMAP.md). Never commit to `main` directly. v1 is frozen
 under `docs/archive/v1/`.

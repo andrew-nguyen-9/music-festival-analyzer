@@ -53,3 +53,19 @@ chosen and documented; revisit in v2.11 if product disagrees.
 (a) `/qa` full-app · (b) `/code-review ultra` · (c) final commit · (d) merge
 `v2 → main` · (e) delete branches · (f) reconcile docs · (g) archive planning ·
 (h) brainstorm v3.
+
+## v2.11 resolution (what actually shipped)
+Product reviewed the autonomous defaults and **overrode three** of them:
+- **v2.4 → square portrait.** `ArtistHero` reframed from a full-bleed background
+  hero to a bounded square portrait + dossier metadata column.
+- **v2.9 → per-day playlists** (was per-festival). The lineup is grouped by day;
+  the user picks a day, falling back to the whole lineup when there's no schedule.
+- v2.8 image generation **kept as client canvas** (override considered, declined).
+- v2.4 portrait focal change subsumed by the square-portrait reframe.
+
+Also in v2.11: postcss bumped to 8.5.10+ (`$postcss` override; cleared the
+moderate XSS advisory). The deploy/secret/browser-gated checks above were
+**merged-then-tracked** as post-ship follow-ups (see `docs/brainstorm/v3-backlog.md`)
+rather than blocking the merge. v2.3 live DB rollout (`scripts/finish_v2.sh`)
+ran offline self-tests (all pass); the migrations + prod write-stages are an
+operator step (needs psql + `DATABASE_URL`).
