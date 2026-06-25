@@ -51,6 +51,7 @@ class Normalized:
 class SourceAdapter(ABC):
     key: str = ""            # registry key; matches sources.adapter_key
     trust: str | None = None  # default provenance label for rows (lineups.source vocab)
+    festival_merge: str | None = None  # 'coalesce' → run() trust-merges festival rows (v3.2)
 
     def __init__(self, config: dict | None = None):
         self.config = config or {}
@@ -128,6 +129,26 @@ class SupabaseStore:
         rows = self.c.table(table).select("id, slug").in_("slug", list(slugs)).execute().data
         return {r["slug"]: r["id"] for r in rows}
 
+    def merge_festivals(self, rows, trust) -> list[dict]:
+        """Coalesce-forward festival merge (v3.2): fill missing fields + replace
+        *estimated* dates, but never clobber curated/official metadata. Reads the
+        existing row per slug, applies merge_festival_fields, and insert/updates.
+        `trust` is reserved for a future per-field provenance check (see ponytail note)."""
+        affected: list[dict] = []
+        for r in rows:
+            existing = (self.c.table("festivals")
+                        .select("start_date, end_date, dates_estimated, "
+                                "latitude, longitude, venue, city, state, timezone")
+                        .eq("slug", r["slug"]).execute().data)
+            op, payload = merge_festival_fields(existing[0] if existing else None, r)
+            if op == "insert":
+                affected += self.c.table("festivals").insert(payload).execute().data
+            elif op == "update":
+                payload["updated_at"] = _now()
+                affected += (self.c.table("festivals")
+                             .update(payload).eq("slug", r["slug"]).execute().data)
+        return affected
+
 
 # ── Validation ─────────────────────────────────────────────────
 _REQUIRED = {
@@ -153,6 +174,38 @@ def _derive_artists(lineups: list[dict], explicit: list[dict]) -> list[dict]:
             out.append({"slug": slug, "name": name})
             seen.add(slug)
     return out
+
+
+# Aggregator-sourced festival fields that may be FILLED when missing (never overwritten).
+_AGG_FILL = ("latitude", "longitude", "venue", "city", "state", "timezone")
+
+
+def merge_festival_fields(existing: dict | None, incoming: dict) -> tuple[str, dict]:
+    """Coalesce-forward, trust-ordered festival merge (pure → testable offline).
+
+    - new row (existing is None) → insert the non-null incoming fields; real dates
+      clear the dates_estimated flag.
+    - dates → replace iff the row has none OR is flagged dates_estimated (a stub);
+      never overwrite curated/official dates.
+    - _AGG_FILL fields → fill only when the existing value is null/empty.
+    - everything else (name, accent_color, tags, website_url, …) is left untouched.
+    Returns ('insert'|'update'|'noop', payload)."""
+    if existing is None:
+        payload = {k: v for k, v in incoming.items() if v is not None}
+        if incoming.get("start_date") and incoming.get("end_date"):
+            payload["dates_estimated"] = False
+        return "insert", payload
+
+    upd: dict = {}
+    if incoming.get("start_date") and incoming.get("end_date") and (
+            not existing.get("start_date") or existing.get("dates_estimated")):
+        upd["start_date"] = incoming["start_date"]
+        upd["end_date"] = incoming["end_date"]
+        upd["dates_estimated"] = False
+    for k in _AGG_FILL:
+        if incoming.get(k) is not None and not existing.get(k):
+            upd[k] = incoming[k]
+    return ("update", upd) if upd else ("noop", {})
 
 
 _LINEUP_COLS = ("year", "stage", "day", "set_time_start", "set_time_end", "is_headliner")
@@ -199,7 +252,12 @@ def run(adapter: SourceAdapter, store, source_id=None, festival_slug=None, trust
         arts, s = _valid(_derive_artists(norm.lineups, norm.artists), _REQUIRED["artists"]); skipped += s
         lns, s = _valid(norm.lineups, _REQUIRED["lineups"]); skipped += s
 
-        upserted += len(store.upsert("festivals", fests, "slug"))
+        # Aggregator/low-trust sources coalesce-forward (fill, don't clobber); the
+        # default path clobbers on slug as before (curated/official sources own the row).
+        if adapter.festival_merge == "coalesce":
+            upserted += len(store.merge_festivals(fests, trust))
+        else:
+            upserted += len(store.upsert("festivals", fests, "slug"))
         upserted += len(store.upsert("artists", arts, "slug"))
 
         fest_ids = store.resolve_ids("festivals", {l["festival_slug"] for l in lns})
@@ -215,7 +273,9 @@ def run(adapter: SourceAdapter, store, source_id=None, festival_slug=None, trust
         errors.append({"stage": "run", "message": str(e)})
         status = "error"
 
-    store.close_run(run_id, status, upserted, skipped, errors, {})
+    # Adapters may stash cross-source / parse stats on themselves (e.g. aggregator
+    # provider agreement + conflict counts) → recorded in the ingestion_runs row.
+    store.close_run(run_id, status, upserted, skipped, errors, getattr(adapter, "stats", {}) or {})
     console.log(f"[{'green' if status == 'success' else 'yellow'}]"
                 f"{status}: +{upserted} upserted, {skipped} skipped, {len(errors)} errors")
     return {"run_id": run_id, "status": status,
