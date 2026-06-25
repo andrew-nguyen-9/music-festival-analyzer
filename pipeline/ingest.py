@@ -269,10 +269,14 @@ def main():
     q = store.c.table("sources").select("*").eq("enabled", True)
     if args.source:
         q = q.eq("slug", args.source)
-    if args.festival:
-        # relies on the manual_config convention: config.festival.slug
-        q = q.eq("config->festival->>slug", args.festival)
     rows = q.execute().data
+
+    if args.festival:
+        # Client-side filter on the config.festival.slug convention — robust vs.
+        # PostgREST jsonb-path filter quirks, and sources count is small.
+        # ponytail: add a festival_slug column + index if this ever isn't cheap.
+        rows = [r for r in rows
+                if ((r.get("config") or {}).get("festival") or {}).get("slug") == args.festival]
 
     if not rows:
         console.log("[yellow]No enabled sources matched.")
