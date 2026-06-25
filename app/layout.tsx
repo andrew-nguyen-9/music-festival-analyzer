@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import CustomCursor from "@/components/CustomCursor";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 export const metadata: Metadata = {
   title: {
@@ -11,6 +13,10 @@ export const metadata: Metadata = {
   description:
     "Artist and lineup intelligence for US music festivals. Search by artist, genre, city, or vibe — from Lollapalooza to 200+ festivals.",
   metadataBase: new URL("https://festival-analyzer.vercel.app"),
+};
+
+export const viewport = {
+  themeColor: "#0A0A0A",
 };
 
 export default function RootLayout({
@@ -36,6 +42,8 @@ export default function RootLayout({
       <body className="min-h-screen bg-surface font-sans text-white antialiased">
         {/* Film-grain texture overlay (creative-dev T19) */}
         <div className="grain-overlay" aria-hidden />
+        <OfflineIndicator />
+        <ServiceWorkerRegistrar />
         <CustomCursor />
         <Nav />
         <main>{children}</main>
