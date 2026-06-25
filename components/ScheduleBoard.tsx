@@ -3,6 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { LineupEntry } from "@/lib/types";
+import {
+  timeToMinutes,
+  fmtSetTime as fmtTime,
+  fmtDayLabel as fmtDay,
+} from "@/lib/format";
 
 const PX_PER_MIN = 2; // vertical density: 2px per minute of set
 
@@ -17,24 +22,6 @@ const STAGE_COLORS = [
   { bg: "bg-orange-500/75 hover:bg-orange-400/90", ring: "ring-orange-400/40" },
   { bg: "bg-lime-500/75 hover:bg-lime-400/90",     ring: "ring-lime-400/40" },
 ];
-
-function timeToMinutes(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  // Times past midnight (0:xx–5:xx) wrap to 24+
-  return (h < 7 ? h + 24 : h) * 60 + (m ?? 0);
-}
-
-function fmtTime(t: string): string {
-  const [h, m] = t.split(":").map(Number);
-  const hour = h % 12 || 12;
-  const ampm = h < 12 || h === 24 ? "am" : "pm";
-  return m === 0 ? `${hour}${ampm}` : `${hour}:${String(m).padStart(2, "0")}${ampm}`;
-}
-
-function fmtDay(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
 
 interface Props { lineup: LineupEntry[] }
 

@@ -20,6 +20,7 @@ import type {
   Media,
   SearchResult,
   SocialPost,
+  Stage,
 } from "./types";
 
 function warn(scope: string, error: unknown): void {
@@ -174,6 +175,24 @@ export async function getLineup(
     );
   } catch (e) {
     warn("getLineup", e);
+    return [];
+  }
+}
+
+// ── Stages (geocoded; backs the v2.8 wallpaper map) ────────────
+
+export async function getStages(festivalId: string): Promise<Stage[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("stages")
+      .select("id, festival_id, name, latitude, longitude, coords_source")
+      .eq("festival_id", festivalId);
+    if (error) throw error;
+    return (data as unknown as Stage[]) ?? [];
+  } catch (e) {
+    warn("getStages", e);
     return [];
   }
 }

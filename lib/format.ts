@@ -104,6 +104,35 @@ export function hasMultipleWeekends(days: (string | null)[]): boolean {
   return spanDays > 7;
 }
 
+// ── Set-time helpers (shared by ScheduleBoard + the v2.8 wallpaper) ────
+
+/** Minutes since midnight for a "HH:MM[:SS]" set time. Pre-dawn hours (0–6)
+ *  wrap past 24 so a 1am set sorts after an 11pm set on the same festival night. */
+export function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h < 7 ? h + 24 : h) * 60 + (m ?? 0);
+}
+
+/** "21:30:00" → "9:30pm" (times are local to the festival timezone). */
+export function fmtSetTime(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  const hour = h % 12 || 12;
+  const ampm = h < 12 || h === 24 ? "am" : "pm";
+  return m === 0
+    ? `${hour}${ampm}`
+    : `${hour}:${String(m).padStart(2, "0")}${ampm}`;
+}
+
+/** ISO date → "Fri, Aug 1". */
+export function fmtDayLabel(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Groups a flat lineup by ISO date string. */
 export function groupLineupByDay<T extends { day: string | null }>(
   lineup: T[],
