@@ -341,6 +341,45 @@ export function withSpotifyCache(
   };
 }
 
+/**
+ * Spotify track URIs for the given artists, drawn from the v2.2 cache's
+ * top_tracks (v2.9.2). We read cached tracks — not a live /artists/top-tracks
+ * call (removed in the 2026 API). Shape of top_tracks is defensive: prefer a
+ * `uri`, fall back to building one from `id`. Returns [] when nothing is cached.
+ */
+export async function getTopTrackUris(
+  artistIds: string[],
+  perArtist = 5,
+): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb || artistIds.length === 0) return [];
+  try {
+    const { data, error } = await sb
+      .from("artist_spotify_cache")
+      .select("artist_id, top_tracks")
+      .in("artist_id", artistIds);
+    if (error) throw error;
+    const uris: string[] = [];
+    for (const row of (data as { top_tracks: unknown }[]) ?? []) {
+      const tracks = Array.isArray(row.top_tracks) ? row.top_tracks : [];
+      for (const t of tracks.slice(0, perArtist)) {
+        const track = t as { uri?: unknown; id?: unknown };
+        const uri =
+          typeof track.uri === "string"
+            ? track.uri
+            : typeof track.id === "string"
+              ? `spotify:track:${track.id}`
+              : null;
+        if (uri) uris.push(uri);
+      }
+    }
+    return uris;
+  } catch (e) {
+    warn("getTopTrackUris", e);
+    return [];
+  }
+}
+
 export async function getArtistAppearances(
   artistId: string,
 ): Promise<ArtistAppearance[]> {
