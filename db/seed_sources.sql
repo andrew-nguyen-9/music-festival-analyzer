@@ -48,9 +48,43 @@ insert into sources (slug, name, adapter_type, adapter_key, config, trust, enabl
 -- replaces estimated dates, never clobbering curated metadata.
 insert into sources (slug, name, adapter_type, adapter_key, config, trust, enabled) values (
   'festival-aggregator', 'Festival Metadata Aggregator (TM + SeatGeek)', 'api', 'aggregator',
-  $cfg${"providers": ["ticketmaster", "seatgeek"], "targets_file": "festival_targets.csv"}$cfg$::jsonb,
+  $cfg${"providers": ["ticketmaster"], "targets_file": "festival_targets.csv"}$cfg$::jsonb,
   'aggregator', true
 ) on conflict (slug) do update set
+  name = excluded.name, config = excluded.config,
+  adapter_type = excluded.adapter_type, adapter_key = excluded.adapter_key,
+  trust = excluded.trust, enabled = excluded.enabled, updated_at = now();
+
+-- ── v3.2.7: flagship lineup depth (Ticketmaster lineup adapter) ─
+-- One row per flagship → TicketmasterLineupAdapter writes day-by-day LINEUPS (not
+-- just metadata) with trust='ticketmaster'. Driven by `python ingest_lineups.py`.
+-- Lollapalooza is intentionally excluded: it has a curated 'official' poster
+-- (lollapalooza-2026) that the v2.3.3 trust triggers protect from lower-trust writes.
+-- tm_keyword + headliners_per_day mirror lineup_scraper.FESTIVAL_CONFIG.
+insert into sources (slug, name, adapter_type, adapter_key, config, trust, enabled) values
+  ('coachella-lineup-tm', 'Coachella lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "coachella", "tm_keyword": "Coachella Valley Music", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('electric-daisy-carnival-lineup-tm', 'EDC Las Vegas lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "electric-daisy-carnival", "tm_keyword": "Electric Daisy Carnival Las Vegas", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('outside-lands-lineup-tm', 'Outside Lands lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "outside-lands", "tm_keyword": "Outside Lands", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('ultra-music-festival-lineup-tm', 'Ultra lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "ultra-music-festival", "tm_keyword": "Ultra Music Festival", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('bonnaroo-lineup-tm', 'Bonnaroo lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "bonnaroo-music-and-arts-festival", "tm_keyword": "Bonnaroo", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('acl-lineup-tm', 'Austin City Limits lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "austin-city-limits-music-festival", "tm_keyword": "Austin City Limits Music Festival", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('governors-ball-lineup-tm', 'Governors Ball lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "governors-ball", "tm_keyword": "Governors Ball", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('stagecoach-lineup-tm', 'Stagecoach lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "stagecoach", "tm_keyword": "Stagecoach Festival", "year": 2026, "headliners_per_day": 2}$c$::jsonb, 'ticketmaster', true),
+  ('rolling-loud-lineup-tm', 'Rolling Loud lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "rolling-loud", "tm_keyword": "Rolling Loud", "year": 2026, "headliners_per_day": 3}$c$::jsonb, 'ticketmaster', true),
+  ('nojazz-lineup-tm', 'New Orleans Jazz Fest lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "new-orleans-jazz-heritage-festival", "tm_keyword": "New Orleans Jazz Heritage Festival", "year": 2026, "headliners_per_day": 2}$c$::jsonb, 'ticketmaster', true),
+  ('electric-forest-lineup-tm', 'Electric Forest lineup (Ticketmaster)', 'api', 'ticketmaster_lineup',
+   $c${"festival_slug": "electric-forest", "tm_keyword": "Electric Forest", "year": 2026, "headliners_per_day": 2}$c$::jsonb, 'ticketmaster', true)
+on conflict (slug) do update set
   name = excluded.name, config = excluded.config,
   adapter_type = excluded.adapter_type, adapter_key = excluded.adapter_key,
   trust = excluded.trust, enabled = excluded.enabled, updated_at = now();
