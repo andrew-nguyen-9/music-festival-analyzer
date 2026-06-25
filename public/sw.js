@@ -34,6 +34,17 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // don't touch Supabase/Spotify/CDN
 
+  // Never cache the OAuth callback (the ?code lands in the cache key), API
+  // responses, or any code/error redirect — pass straight to network (bug_015).
+  if (
+    url.pathname === "/spotify/callback" ||
+    url.pathname.startsWith("/api/") ||
+    url.searchParams.has("code") ||
+    url.searchParams.has("error")
+  ) {
+    return;
+  }
+
   event.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(req);

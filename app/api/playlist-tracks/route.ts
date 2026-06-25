@@ -13,6 +13,11 @@ export async function POST(req: Request) {
   if (!Array.isArray(artistIds) || artistIds.some((x) => typeof x !== "string")) {
     return NextResponse.json({ uris: [] }, { status: 400 });
   }
+  // Bound the public IN-clause: 200 covers any real lineup (Lolla 2026 ≈ 191),
+  // the button only sends a day's worth of favorites (bug_014).
+  if (artistIds.length > 200) {
+    return NextResponse.json({ uris: [] }, { status: 413 });
+  }
   const uris = await getTopTrackUris(artistIds as string[]);
   return NextResponse.json({ uris });
 }

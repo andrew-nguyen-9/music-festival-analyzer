@@ -89,7 +89,10 @@ export async function completeSpotifyLogin(code: string): Promise<string> {
     }),
   );
   sessionStorage.removeItem(VERIFIER_KEY);
-  return sessionStorage.getItem(RETURN_KEY) ?? "/";
+  // Same-origin paths only — block open-redirect via the return-to (incl.
+  // protocol-relative "//host"). The callback feeds this to router.replace (bug_017).
+  const stored = sessionStorage.getItem(RETURN_KEY) ?? "/";
+  return stored.startsWith("/") && !stored.startsWith("//") ? stored : "/";
 }
 
 /** A non-expired access token, or null if the user must (re)authenticate. */

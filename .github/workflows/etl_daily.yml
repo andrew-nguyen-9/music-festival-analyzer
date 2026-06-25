@@ -37,9 +37,12 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          # Via env (not inline ${{…}}) to avoid shell injection from dispatch inputs.
+          FESTIVAL: ${{ github.event.inputs.festival }}
+          YEAR: ${{ github.event.inputs.year }}
         run: |
-          if [ -n "${{ github.event.inputs.festival }}" ]; then
-            python artist_enricher.py --festival "${{ github.event.inputs.festival }}" --year "${{ github.event.inputs.year }}"
+          if [ -n "$FESTIVAL" ]; then
+            python artist_enricher.py --festival "$FESTIVAL" --year "$YEAR"
           else
             python artist_enricher.py
           fi
@@ -187,9 +190,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Via env (not inline ${{…}}) to avoid shell injection from dispatch inputs.
+          FESTIVAL: ${{ github.event.inputs.festival }}
+          YEAR: ${{ github.event.inputs.year }}
         run: |
-          if [ -n "${{ github.event.inputs.festival }}" ]; then
-            python fun_facts_generator.py --festival "${{ github.event.inputs.festival }}" --year "${{ github.event.inputs.year }}"
+          if [ -n "$FESTIVAL" ]; then
+            python fun_facts_generator.py --festival "$FESTIVAL" --year "$YEAR"
           else
-            python fun_facts_generator.py --all --year "${{ github.event.inputs.year }}"
+            python fun_facts_generator.py --all --year "$YEAR"
           fi
