@@ -27,11 +27,16 @@ create table if not exists stages (
 
 create index if not exists idx_stages_festival on stages (festival_id);
 
+-- drop-then-create so the header's "safe to re-run" holds: Postgres has no
+-- CREATE TRIGGER/POLICY IF NOT EXISTS (pre-PG17), so finish_v2.sh's looped
+-- psql -v ON_ERROR_STOP=1 would otherwise abort on a second pass (bug_011).
+drop trigger if exists stages_updated_at on stages;
 create trigger stages_updated_at before update on stages
   for each row execute function set_updated_at();
 
 -- RLS: public read, service-role write (new tables require this — CLAUDE.md).
 alter table stages enable row level security;
+drop policy if exists "Public read stages" on stages;
 create policy "Public read stages" on stages for select using (true);
 
 -- ── Rollback ────────────────────────────────────────────────
