@@ -8,6 +8,7 @@ import MediaGallery from "@/components/MediaGallery";
 import SocialFeed from "@/components/SocialFeed";
 import FunFactsWidget from "@/components/FunFactsWidget";
 import RelatedFestivals from "@/components/RelatedFestivals";
+import SmartPlaylistButton from "@/components/SmartPlaylistButton";
 import Link from "next/link";
 import { getFestivalBySlug, getFestivalPageData } from "@/lib/queries";
 import { getFestivalState } from "@/lib/format";
@@ -64,14 +65,21 @@ export default async function FestivalPage({ params }: PageProps) {
 
         <FestivalPageTabs festival={festival} lineup={lineup} state={state} />
 
-        {hasSchedule && !isPassed && (
-          <section className="mx-auto max-w-wide px-5 py-4 md:px-8">
-            <Link
-              href={`/festival/${festival.slug}/wallpaper`}
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.02]"
-            >
-              📱 Make a phone wallpaper of your day
-            </Link>
+        {!isPassed && lineup.length > 0 && (
+          <section className="mx-auto flex max-w-wide flex-wrap items-center gap-4 px-5 py-4 md:px-8">
+            {hasSchedule && (
+              <Link
+                href={`/festival/${festival.slug}/wallpaper`}
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.02]"
+              >
+                📱 Make a phone wallpaper of your day
+              </Link>
+            )}
+            <SmartPlaylistButton
+              festivalName={festival.name}
+              year={year}
+              lineupArtistIds={lineup.map((e) => e.artist.id)}
+            />
           </section>
         )}
 
