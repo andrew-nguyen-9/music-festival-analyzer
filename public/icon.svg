@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0A0A0A"/>
+  <rect x="40" y="40" width="432" height="432" rx="80" fill="none" stroke="#FF4500" stroke-width="16"/>
+  <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle"
+        font-family="'Space Grotesk', system-ui, sans-serif" font-weight="700"
+        font-size="240" fill="#FF4500" letter-spacing="-8">FA</text>
+</svg>

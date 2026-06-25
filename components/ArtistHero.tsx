@@ -1,5 +1,6 @@
 import Portrait from "./Portrait";
 import PreviewPlayer from "./PreviewPlayer";
+import FavoriteButton from "./FavoriteButton";
 import { formatCount } from "@/lib/format";
 import type { Artist } from "@/lib/types";
 
@@ -63,6 +64,10 @@ export default function ArtistHero({ artist }: Props) {
               label="From"
             />
           )}
+        </div>
+
+        <div className="mt-6">
+          <FavoriteButton id={artist.id} slug={artist.slug} name={artist.name} />
         </div>
       </div>
     </section>
