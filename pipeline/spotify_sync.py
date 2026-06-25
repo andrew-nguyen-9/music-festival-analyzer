@@ -177,26 +177,7 @@ def search_artist(sp, name: str) -> tuple[dict | None, float]:
 
 # ── Cache row construction ──────────────────────────────────────
 
-def fetch_top_tracks(sp, spotify_id: str) -> tuple[list | None, str | None]:
-    """(top_tracks, preview_url) for an artist. Returns (None, None) on failure
-    so coalesce-forward in build_row keeps any prior cache instead of wiping it.
-    top_tracks is trimmed to what the playlist + preview UI needs."""
-    try:
-        tracks = sp.artist_top_tracks(spotify_id, country="US").get("tracks", [])
-    except Exception as e:  # endpoint hiccup / rate limit — keep prior cache
-        log.warning("top-tracks fetch failed for %s: %s", spotify_id, e)
-        return None, None
-    top = [
-        {"uri": t.get("uri"), "id": t.get("id"), "name": t.get("name")}
-        for t in tracks[:10]
-        if t.get("uri") or t.get("id")
-    ]
-    preview = next((t.get("preview_url") for t in tracks if t.get("preview_url")), None)
-    return (top or None), preview
-
-
-def build_row(artist_id: str, item: dict | None, prev: dict | None = None,
-              top_tracks: list | None = None, preview_url: str | None = None) -> dict:
+def build_row(artist_id: str, item: dict | None, prev: dict | None = None) -> dict:
     """Shape a cache row from a Spotify search item (or a miss when item=None).
 
     Coalesce-forward: in 2026 Spotify returns popularity/followers/genres
@@ -228,10 +209,12 @@ def build_row(artist_id: str, item: dict | None, prev: dict | None = None,
         "popularity": keep("popularity", pop),
         "genres": keep("genres", gen) or [],
         "image_url": keep("image_url", img),
-        # Populated from /artists/{id}/top-tracks (fetched in work()); coalesce so a
-        # transient empty fetch never wipes a known-good cache (v2.11 fix, bug_001).
-        "preview_url": keep("preview_url", preview_url),
-        "top_tracks": keep("top_tracks", top_tracks),
+        # The app/client-credentials token is 403'd from /artists/{id}/top-tracks
+        # (and previews), so the cache holds neither — the smart-playlist flow
+        # resolves top tracks client-side with the user's PKCE token instead
+        # (lib/playlist.topTrackUrisForArtists). Kept null here intentionally.
+        "preview_url": None,
+        "top_tracks": None,
         "raw": item,
     }
 
@@ -281,7 +264,7 @@ def select_stale(sb: Client, festival: str | None, year: int | None,
 def load_existing(sb: "Client", artist_ids: list[str]) -> dict:
     """Map artist_id → its current cache row (for coalesce-forward)."""
     existing: dict = {}
-    cols = "artist_id, spotify_id, followers, popularity, genres, image_url, preview_url, top_tracks"
+    cols = "artist_id, spotify_id, followers, popularity, genres, image_url"
     for i in range(0, len(artist_ids), 200):
         rows = sb.table("artist_spotify_cache").select(cols).in_(
             "artist_id", artist_ids[i:i + 200]
@@ -305,8 +288,7 @@ def sync(sb: "Client", sp, artists: list[dict]) -> dict:
                 log.info("low-confidence match for %r: best=%r (%.2f) — caching miss",
                          artist["name"], item.get("name"), score)
             return build_row(artist["id"], None, prev)
-        top, preview = fetch_top_tracks(sp, item["id"])
-        return build_row(artist["id"], item, prev, top_tracks=top, preview_url=preview)
+        return build_row(artist["id"], item, prev)
 
     batches = [artists[i:i + BATCH_SIZE] for i in range(0, len(artists), BATCH_SIZE)]
     for batch in track(batches, description="Syncing Spotify…"):

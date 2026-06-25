@@ -24,6 +24,39 @@ async function api<T>(
   return (await res.json()) as T;
 }
 
+/**
+ * Top-track URIs for the given Spotify artist ids, via the **user** token
+ * (v2.11). The app/client-credentials token used by the pipeline is 403'd from
+ * /artists/{id}/top-tracks, so we resolve tracks at click-time with the user's
+ * PKCE token instead of a server cache. `market=from_token` uses the user's
+ * country. Per-artist failures are skipped so one bad id doesn't sink the run.
+ */
+export async function topTrackUrisForArtists(
+  token: string,
+  spotifyIds: string[],
+  perArtist = 5,
+): Promise<string[]> {
+  const uris: string[] = [];
+  const seen = new Set<string>();
+  for (const id of spotifyIds) {
+    try {
+      const { tracks } = await api<{ tracks: { uri?: string }[] }>(
+        `/artists/${id}/top-tracks?market=from_token`,
+        token,
+      );
+      for (const t of tracks.slice(0, perArtist)) {
+        if (t.uri && !seen.has(t.uri)) {
+          seen.add(t.uri);
+          uris.push(t.uri);
+        }
+      }
+    } catch {
+      // one artist's top-tracks failing must not sink the playlist
+    }
+  }
+  return uris;
+}
+
 export interface CreatedPlaylist {
   url: string; // open-in-Spotify link
   trackCount: number;

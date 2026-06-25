@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { listFavorites } from "@/lib/favorites";
-import { createPlaylistWithTracks } from "@/lib/playlist";
+import { createPlaylistWithTracks, topTrackUrisForArtists } from "@/lib/playlist";
 import { fmtDayLabel } from "@/lib/format";
 import {
   isSpotifyConfigured,
@@ -85,6 +85,22 @@ export default function SmartPlaylistButton({
         return;
       }
 
+      // Resolve internal ids → matched Spotify artist ids (server cache read).
+      setState({ kind: "working", msg: "Matching your artists on Spotify…" });
+      const res = await fetch("/api/playlist-tracks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artistIds: inScope.map((f) => f.id) }),
+      });
+      const { spotifyIds } = (await res.json()) as { spotifyIds: string[] };
+      if (!spotifyIds || spotifyIds.length === 0) {
+        setState({
+          kind: "error",
+          msg: "Your starred artists aren’t matched on Spotify yet.",
+        });
+        return;
+      }
+
       // Login on demand — bounces to Spotify and back to this page.
       if (!getSpotifyToken()) {
         await loginWithSpotify(window.location.pathname);
@@ -96,17 +112,13 @@ export default function SmartPlaylistButton({
         return;
       }
 
+      // Top tracks via the user token (the app token is 403'd from top-tracks).
       setState({ kind: "working", msg: "Finding top tracks…" });
-      const res = await fetch("/api/playlist-tracks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artistIds: inScope.map((f) => f.id) }),
-      });
-      const { uris } = (await res.json()) as { uris: string[] };
-      if (!uris || uris.length === 0) {
+      const uris = await topTrackUrisForArtists(token, spotifyIds);
+      if (uris.length === 0) {
         setState({
           kind: "error",
-          msg: "No cached tracks for your starred artists yet.",
+          msg: "Couldn’t load tracks for those artists — try again.",
         });
         return;
       }
