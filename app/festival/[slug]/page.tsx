@@ -11,7 +11,7 @@ import RelatedFestivals from "@/components/RelatedFestivals";
 import SmartPlaylistButton from "@/components/SmartPlaylistButton";
 import Link from "next/link";
 import { getFestivalBySlug, getFestivalPageData } from "@/lib/queries";
-import { getFestivalState } from "@/lib/format";
+import { getFestivalState, groupLineupByDay } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +40,13 @@ export default async function FestivalPage({ params }: PageProps) {
 
   const hasSchedule = lineup.some((e) => e.day != null);
   const state = getFestivalState(festival.end_date, lineup.length, hasSchedule);
+
+  // Lineup artist ids grouped by day for the per-day playlist (v2.11.2).
+  const dayGroups = [...groupLineupByDay(lineup).entries()]
+    .map(([key, entries]) => ({ key, artistIds: entries.map((e) => e.artist.id) }))
+    .sort((a, b) =>
+      a.key === "TBD" ? 1 : b.key === "TBD" ? -1 : a.key.localeCompare(b.key),
+    );
   const isPassed = state === "passed";
 
   // For passed festivals: apply grayscale + reduced opacity to the content.
@@ -78,7 +85,7 @@ export default async function FestivalPage({ params }: PageProps) {
             <SmartPlaylistButton
               festivalName={festival.name}
               year={year}
-              lineupArtistIds={lineup.map((e) => e.artist.id)}
+              days={dayGroups}
             />
           </section>
         )}
