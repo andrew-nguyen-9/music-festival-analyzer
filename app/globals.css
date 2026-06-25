@@ -22,6 +22,14 @@
   --upcoming-light: #a78bfa;
   --upcoming:       #8b5cf6;
   --upcoming-dark:  #6d28d9;
+
+  /* Motion tokens (v2.5 design system) — consumed by reveals + view transitions
+     in v2.6. One easing vocabulary so motion reads as one hand. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-reveal: 0.6s;   /* scroll-into-view reveals */
+  --dur-morph: 0.45s;   /* grid → detail view transition */
+  --dur-micro: 0.2s;    /* hover / press feedback */
 }
 
 html {
