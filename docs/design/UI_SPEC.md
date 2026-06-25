@@ -1,5 +1,11 @@
 # UI Specification — Festival Analyzer
 
+> ⚠️ **Superseded (v2.5).** This v1 spec is retained for historical reference only.
+> The active design system is [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) ("The Dossier"
+> direction). Where the two disagree, DESIGN_SYSTEM.md wins. The typography scale and
+> runtime accent-theming model below carried forward; the page templates and component
+> specs here predate the v2.4–v2.6 rebuild and are not authoritative.
+
 ## Design Philosophy
 
 The UI takes cues from two Awwwards references:

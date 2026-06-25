@@ -1,7 +1,27 @@
 import type { Metadata } from "next";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+
+// Self-hosted via next/font (v2.10.2) — no render-blocking Google stylesheet,
+// no layout shift, `swap` so text paints immediately. Exposes the same CSS vars
+// globals.css already references.
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
 import CustomCursor from "@/components/CustomCursor";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import OfflineIndicator from "@/components/OfflineIndicator";
+import WebVitals from "@/components/WebVitals";
 
 export const metadata: Metadata = {
   title: {
@@ -13,29 +33,23 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://festival-analyzer.vercel.app"),
 };
 
+export const viewport = {
+  themeColor: "#0A0A0A",
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <head>
-        {/* Inter loaded at runtime (graceful fallback to system-ui offline). */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
-        />
-      </head>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="min-h-screen bg-surface font-sans text-white antialiased">
         {/* Film-grain texture overlay (creative-dev T19) */}
         <div className="grain-overlay" aria-hidden />
+        <WebVitals />
+        <OfflineIndicator />
+        <ServiceWorkerRegistrar />
         <CustomCursor />
         <Nav />
         <main>{children}</main>

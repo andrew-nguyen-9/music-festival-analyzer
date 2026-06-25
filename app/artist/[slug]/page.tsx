@@ -5,7 +5,13 @@ import ArtistHero from "@/components/ArtistHero";
 import StreamingWidget from "@/components/StreamingWidget";
 import ArtistDiscography from "@/components/ArtistDiscography";
 import FestivalAppearances from "@/components/FestivalAppearances";
-import { getArtistBySlug, getArtistAppearances } from "@/lib/queries";
+import EmptyState from "@/components/EmptyState";
+import {
+  getArtistBySlug,
+  getArtistAppearances,
+  getArtistSpotifyCache,
+  withSpotifyCache,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +34,22 @@ export async function generateMetadata({
 
 export default async function ArtistPage({ params }: PageProps) {
   const { slug } = await params;
-  const artist = await getArtistBySlug(slug);
-  if (!artist) notFound();
+  const base = await getArtistBySlug(slug);
+  if (!base) notFound();
 
-  const appearances = await getArtistAppearances(artist.id);
+  // Overlay cached Spotify data (v2.2) — read from cache, never from Spotify.
+  const [cache, appearances] = await Promise.all([
+    getArtistSpotifyCache(base.id),
+    getArtistAppearances(base.id),
+  ]);
+  const artist = withSpotifyCache(base, cache);
+  // Thin-data artist: nothing enriched yet beyond a name. Render an honest
+  // "still gathering" note instead of a near-empty page (v2.4.4).
+  const thin =
+    !artist.bio &&
+    !artist.spotify_id &&
+    !artist.preview_url &&
+    (artist.genres?.length ?? 0) === 0;
   // Theme the page by the artist's headliner/first festival accent, if any.
   const themeAccent =
     appearances.find((a) => a.is_headliner)?.festival.accent_color ??
@@ -51,8 +69,24 @@ export default async function ArtistPage({ params }: PageProps) {
         </section>
       )}
 
-      <StreamingWidget artist={artist} />
-      {artist.spotify_id && <ArtistDiscography spotifyId={artist.spotify_id} artistName={artist.name} />}
+      {thin ? (
+        <section className="mx-auto max-w-3xl px-5 py-16 md:px-8">
+          <EmptyState
+            title="Still gathering data on this artist"
+            hint="Bio, music, and stats appear once the Spotify sync worker matches this artist. Their festival appearances are below."
+          />
+        </section>
+      ) : (
+        <>
+          <StreamingWidget artist={artist} />
+          {artist.spotify_id && (
+            <ArtistDiscography
+              spotifyId={artist.spotify_id}
+              artistName={artist.name}
+            />
+          )}
+        </>
+      )}
       <FestivalAppearances
         appearances={appearances}
         artistName={artist.name}

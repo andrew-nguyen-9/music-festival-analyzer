@@ -6,11 +6,13 @@
 // always render (with empty states) rather than crash.
 // ─────────────────────────────────────────────────────────────
 
+import { cache } from "react";
 import { getSupabase } from "./supabase";
 import { festivalYear } from "./format";
 import type {
   Artist,
   ArtistAppearance,
+  ArtistSpotifyCache,
   Festival,
   FunFact,
   FunFactsRow,
@@ -18,11 +20,38 @@ import type {
   Media,
   SearchResult,
   SocialPost,
+  Stage,
 } from "./types";
 
 function warn(scope: string, error: unknown): void {
   console.warn(`[queries:${scope}]`, (error as Error)?.message ?? error);
 }
+
+// ─────────────────────────────────────────────────────────────
+// Column sets — select only what the UI renders (v2.1.5).
+// Derived from actual component field usage; kept here so every query
+// shares one source of truth instead of `select("*")`. Rows are cast to the
+// full type for ergonomics — only listed columns are present at runtime, and
+// components are verified to read only those.
+// ─────────────────────────────────────────────────────────────
+
+/** Festival fields a card/list renders (+ filter/ranking keys). */
+const FESTIVAL_CARD =
+  "id, slug, name, city, state, start_date, end_date, tags, accent_color, hero_image_url, vector_art, dates_estimated, is_active";
+/** Festival detail page adds the long-form / secondary fields. */
+const FESTIVAL_FULL = `${FESTIVAL_CARD}, country, venue, website_url, description`;
+
+/** Artist fields a lineup card renders — no bio/blobs (851-row join).
+ *  preview_url powers the tile hover micro-player (v2.6.4). */
+const ARTIST_CARD =
+  "id, slug, name, genres, image_url, header_image_url, spotify_popularity, spotify_followers, preview_url";
+/** Artist detail page adds bio, links, preview, origin. */
+const ARTIST_FULL =
+  "id, slug, name, bio, genres, origin_city, origin_country, website_url, spotify_id, spotify_url, spotify_followers, spotify_popularity, preview_url, image_url, header_image_url";
+
+/** Lineup row columns (excludes unused created_at). */
+const LINEUP_COLS =
+  "id, festival_id, artist_id, year, stage, day, set_time_start, set_time_end, is_headliner";
 
 // ── Festivals ──────────────────────────────────────────────────
 
@@ -32,11 +61,11 @@ export async function getFestivals(): Promise<Festival[]> {
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .order("start_date", { ascending: true });
     if (error) throw error;
-    return (data as Festival[]) ?? [];
+    return (data as unknown as Festival[]) ?? [];
   } catch (e) {
     warn("getFestivals", e);
     return [];
@@ -50,32 +79,34 @@ export async function getFeaturedFestivals(limit = 6): Promise<Festival[]> {
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .contains("tags", ["flagship"])
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
     if (error) throw error;
-    const featured = (data as Festival[]) ?? [];
+    const featured = (data as unknown as Festival[]) ?? [];
     if (featured.length > 0) return featured;
     // Fallback: flagship tag not set yet — return next N upcoming festivals.
     const { data: upcoming, error: e2 } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
     if (e2) throw e2;
-    return (upcoming as Festival[]) ?? [];
+    return (upcoming as unknown as Festival[]) ?? [];
   } catch (e) {
     warn("getFeaturedFestivals", e);
     return [];
   }
 }
 
-export async function getFestivalBySlug(
+// Wrapped in React cache() — request-scoped memoization dedupes the double
+// fetch from generateMetadata + the page render (same for getArtistBySlug).
+export const getFestivalBySlug = cache(async function getFestivalBySlug(
   slug: string,
 ): Promise<Festival | null> {
   const sb = getSupabase();
@@ -83,16 +114,16 @@ export async function getFestivalBySlug(
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_FULL)
       .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
-    return (data as Festival) ?? null;
+    return (data as unknown as Festival) ?? null;
   } catch (e) {
     warn("getFestivalBySlug", e);
     return null;
   }
-}
+});
 
 export async function getRelatedFestivals(
   festival: Festival,
@@ -103,12 +134,12 @@ export async function getRelatedFestivals(
   try {
     const { data, error } = await sb
       .from("festivals")
-      .select("*")
+      .select(FESTIVAL_CARD)
       .neq("id", festival.id)
       .overlaps("tags", festival.tags)
       .limit(limit + 4);
     if (error) throw error;
-    const rows = (data as Festival[]) ?? [];
+    const rows = (data as unknown as Festival[]) ?? [];
     // Rank by tag-overlap count, desc.
     return rows
       .map((f) => ({
@@ -135,13 +166,33 @@ export async function getLineup(
   try {
     const { data, error } = await sb
       .from("lineups")
-      .select("*, artist:artists(*)")
+      .select(`${LINEUP_COLS}, artist:artists(${ARTIST_CARD})`)
       .eq("festival_id", festivalId)
       .eq("year", year);
     if (error) throw error;
-    return ((data as LineupEntry[]) ?? []).filter((l) => l.artist != null);
+    return ((data as unknown as LineupEntry[]) ?? []).filter(
+      (l) => l.artist != null,
+    );
   } catch (e) {
     warn("getLineup", e);
+    return [];
+  }
+}
+
+// ── Stages (geocoded; backs the v2.8 wallpaper map) ────────────
+
+export async function getStages(festivalId: string): Promise<Stage[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("stages")
+      .select("id, festival_id, name, latitude, longitude, coords_source")
+      .eq("festival_id", festivalId);
+    if (error) throw error;
+    return (data as unknown as Stage[]) ?? [];
+  } catch (e) {
+    warn("getStages", e);
     return [];
   }
 }
@@ -217,20 +268,115 @@ export async function getFunFacts(
 
 // ── Artists ────────────────────────────────────────────────────
 
-export async function getArtistBySlug(slug: string): Promise<Artist | null> {
+export const getArtistBySlug = cache(async function getArtistBySlug(
+  slug: string,
+): Promise<Artist | null> {
   const sb = getSupabase();
   if (!sb) return null;
   try {
     const { data, error } = await sb
       .from("artists")
-      .select("*")
+      .select(ARTIST_FULL)
       .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
-    return (data as Artist) ?? null;
+    return (data as unknown as Artist) ?? null;
   } catch (e) {
     warn("getArtistBySlug", e);
     return null;
+  }
+});
+
+/** Spotify cache fields the UI overlays onto an artist (v2.2). */
+const SPOTIFY_CACHE_COLS =
+  "spotify_id, followers, popularity, genres, image_url, preview_url";
+
+/**
+ * Cached Spotify data for an artist (v2.2). The frontend reads this table only;
+ * it never calls Spotify. Returns null when the sync worker hasn't cached this
+ * artist yet (page then falls back to the artists-table values).
+ */
+export const getArtistSpotifyCache = cache(async function getArtistSpotifyCache(
+  artistId: string,
+): Promise<ArtistSpotifyCache | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("artist_spotify_cache")
+      .select(SPOTIFY_CACHE_COLS)
+      .eq("artist_id", artistId)
+      .maybeSingle();
+    if (error) throw error;
+    return (data as unknown as ArtistSpotifyCache) ?? null;
+  } catch (e) {
+    warn("getArtistSpotifyCache", e);
+    return null;
+  }
+});
+
+/**
+ * Overlay cached Spotify fields onto an artist for rendering. Cache wins when a
+ * field is present; otherwise the artists-table value (legacy enricher) shows.
+ * spotify_url is derived from the cached spotify_id since the cache doesn't
+ * store it.
+ */
+export function withSpotifyCache(
+  artist: Artist,
+  c: ArtistSpotifyCache | null,
+): Artist {
+  if (!c) return artist;
+  const spotifyId = c.spotify_id ?? artist.spotify_id;
+  return {
+    ...artist,
+    spotify_id: spotifyId,
+    spotify_followers: c.followers ?? artist.spotify_followers,
+    spotify_popularity: c.popularity ?? artist.spotify_popularity,
+    genres: c.genres?.length ? c.genres : artist.genres,
+    image_url: c.image_url ?? artist.image_url,
+    preview_url: c.preview_url ?? artist.preview_url,
+    spotify_url:
+      artist.spotify_url ??
+      (spotifyId ? `https://open.spotify.com/artist/${spotifyId}` : null),
+  };
+}
+
+/**
+ * Spotify track URIs for the given artists, drawn from the v2.2 cache's
+ * top_tracks (v2.9.2). We read cached tracks — not a live /artists/top-tracks
+ * call (removed in the 2026 API). Shape of top_tracks is defensive: prefer a
+ * `uri`, fall back to building one from `id`. Returns [] when nothing is cached.
+ */
+export async function getTopTrackUris(
+  artistIds: string[],
+  perArtist = 5,
+): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb || artistIds.length === 0) return [];
+  try {
+    const { data, error } = await sb
+      .from("artist_spotify_cache")
+      .select("artist_id, top_tracks")
+      .in("artist_id", artistIds);
+    if (error) throw error;
+    const uris: string[] = [];
+    for (const row of (data as { top_tracks: unknown }[]) ?? []) {
+      const tracks = Array.isArray(row.top_tracks) ? row.top_tracks : [];
+      for (const t of tracks.slice(0, perArtist)) {
+        const track = t as { uri?: unknown; id?: unknown };
+        const uri =
+          typeof track.uri === "string"
+            ? track.uri
+            : typeof track.id === "string"
+              ? `spotify:track:${track.id}`
+              : null;
+        if (uri) uris.push(uri);
+      }
+    }
+    return uris;
+  } catch (e) {
+    warn("getTopTrackUris", e);
+    return [];
   }
 }
 
@@ -242,11 +388,11 @@ export async function getArtistAppearances(
   try {
     const { data, error } = await sb
       .from("lineups")
-      .select("*, festival:festivals(*)")
+      .select(`${LINEUP_COLS}, festival:festivals(${FESTIVAL_CARD})`)
       .eq("artist_id", artistId)
       .order("year", { ascending: false });
     if (error) throw error;
-    return ((data as ArtistAppearance[]) ?? []).filter(
+    return ((data as unknown as ArtistAppearance[]) ?? []).filter(
       (a) => a.festival != null,
     );
   } catch (e) {

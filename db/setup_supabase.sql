@@ -3,6 +3,13 @@
 -- Paste this entire file into the Supabase SQL editor and Run.
 -- = schema.sql + seed_lolla.sql (runnable lineup section).
 -- Idempotent: safe to re-run.
+--
+-- ⚠️  LEGACY / SUPERSEDED (v2.3). This bootstrap predates v2.1–v2.3 and is now
+-- stale: it lacks artist_spotify_cache, the v2.1 indexes, festivals timezone /
+-- lat-lng, lineups.source, the stages table, and still uses the OLD coarse
+-- lineups key `(festival_id, artist_id, year)` that drops multi-set artists.
+-- Do NOT bootstrap a new DB from this file. Canonical = `schema.sql` then the
+-- timestamped files in `migrations/` (see db/README.md).
 -- ============================================================
 
 -- ============================================================

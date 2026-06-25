@@ -8,8 +8,10 @@ import MediaGallery from "@/components/MediaGallery";
 import SocialFeed from "@/components/SocialFeed";
 import FunFactsWidget from "@/components/FunFactsWidget";
 import RelatedFestivals from "@/components/RelatedFestivals";
+import SmartPlaylistButton from "@/components/SmartPlaylistButton";
+import Link from "next/link";
 import { getFestivalBySlug, getFestivalPageData } from "@/lib/queries";
-import { getFestivalState } from "@/lib/format";
+import { getFestivalState, groupLineupByDay } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,13 @@ export default async function FestivalPage({ params }: PageProps) {
 
   const hasSchedule = lineup.some((e) => e.day != null);
   const state = getFestivalState(festival.end_date, lineup.length, hasSchedule);
+
+  // Lineup artist ids grouped by day for the per-day playlist (v2.11.2).
+  const dayGroups = [...groupLineupByDay(lineup).entries()]
+    .map(([key, entries]) => ({ key, artistIds: entries.map((e) => e.artist.id) }))
+    .sort((a, b) =>
+      a.key === "TBD" ? 1 : b.key === "TBD" ? -1 : a.key.localeCompare(b.key),
+    );
   const isPassed = state === "passed";
 
   // For passed festivals: apply grayscale + reduced opacity to the content.
@@ -62,6 +71,24 @@ export default async function FestivalPage({ params }: PageProps) {
         )}
 
         <FestivalPageTabs festival={festival} lineup={lineup} state={state} />
+
+        {!isPassed && lineup.length > 0 && (
+          <section className="mx-auto flex max-w-wide flex-wrap items-center gap-4 px-5 py-4 md:px-8">
+            {hasSchedule && (
+              <Link
+                href={`/festival/${festival.slug}/wallpaper`}
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.02]"
+              >
+                📱 Make a phone wallpaper of your day
+              </Link>
+            )}
+            <SmartPlaylistButton
+              festivalName={festival.name}
+              year={year}
+              days={dayGroups}
+            />
+          </section>
+        )}
 
         <MediaGallery media={media} />
         <SocialFeed posts={social} />

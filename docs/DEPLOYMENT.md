@@ -18,13 +18,16 @@ In the Vercel dashboard → the project for **festival.an9.dev**:
    - Root Directory: `./` (repo root — leave default).
    - Framework Preset: **Next.js** (auto-detected).
    - Build Command / Output: leave default (`next build`).
-3. **Settings → Git → Production Branch**:
-   - **During the v2 phase** (now): set it to **`v2`** so `festival.an9.dev` serves
-     the phase branch as segments land. Per `WORKFLOW.md`, `main` only receives a
-     **closed** phase, so it has no app yet.
-   - **At v2 phase close**: after `v2` merges to `main`, switch Production Branch
-     back to **`main`**.
+3. **Settings → Git → Production Branch**: **`main`**. `main` is portfolio-linked and
+   always reflects shipped work, so it is the live production source.
 4. **Preview Deployments**: leave enabled (default) → every PR gets a preview URL.
+
+> **Release model (per `WORKFLOW.md` gate d).** `main` only receives a **closed
+> phase**. Segments integrate on the phase branch (`v2`) and do **not** ship to `main`
+> individually. The live site stays at the last closed phase (currently **v2.0**) for
+> the whole of v2's development; when **all** of v2 is complete and gate-green, a single
+> `v2 → main` merge releases the phase. Flow: `sub-branch → v2`, then (once, at phase
+> close) `v2 → main`.
 
 ## 2. Environment variables
 
@@ -53,15 +56,19 @@ See `pipeline/.env.example`.
 `festival.an9.dev` (subdomain of the owned `an9.dev`, already connected to Vercel):
 **Settings → Domains** → assign `festival.an9.dev` to this project. Vercel issues the TLS cert automatically.
 
-## 4. First production deploy (v2.0.7)
+## 4. Releasing the phase (v2.0.7 first deploy — ✅ done)
 
-`v2.0` is merged into the `v2` phase branch. Do **not** merge `v2` → `main` yet —
-that happens only at phase close (`WORKFLOW.md` gate d), after all v2 segments.
+v2.0 is live at `festival.an9.dev` (merged `v2` → `main` via PR). That was the
+phase's first production cut. **No further `main` merges until the v2 phase closes.**
+At phase close (all segments gate-green, `WORKFLOW.md` gates a–h):
 
-1. Push `v2` to the GitHub remote (Vercel Git integration builds from the remote).
-2. With Production Branch = `v2` (step 1.3 above), Vercel auto-builds `v2` → production.
-3. Confirm the deploy is green and `festival.an9.dev` resolves.
-4. **Verify Lollapalooza end-to-end** (see checklist below).
+1. Final phase gates pass on `v2`.
+2. Merge `v2` → `main` (one release).
+3. Vercel auto-builds `main` → production.
+4. Confirm the deploy is green and **verify end-to-end** (checklist below).
+
+During the phase, exercise unreleased segment work via Vercel **preview** deploys
+(every PR against `v2` gets a preview URL) — not production.
 
 ## 5. Live verification checklist
 
