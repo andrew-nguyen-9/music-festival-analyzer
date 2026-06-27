@@ -110,8 +110,19 @@ def test_merge_empty_is_none():
 def test_merge_fields_insert():
     op, payload = ingest.merge_festival_fields(
         None, {"slug": "x", "name": "X", "start_date": "2026-07-30", "end_date": "2026-08-02",
-               "latitude": 1.0, "longitude": 2.0})
+               "latitude": 1.0, "longitude": 2.0, "venue": "V"})
     assert op == "insert" and payload["dates_estimated"] is False and payload["latitude"] == 1.0
+
+
+def test_merge_fields_insert_requires_gate_fields():
+    # No coords → can't pass the v3.1 gate → don't create a stub.
+    op, _ = ingest.merge_festival_fields(
+        None, {"slug": "x", "name": "X", "city": "C", "start_date": "2026-07-30", "end_date": "2026-08-02"})
+    assert op == "noop"
+    # Coords + city but NO dates → insert, honestly flagged dates_estimated (gate-valid).
+    op, payload = ingest.merge_festival_fields(
+        None, {"slug": "x", "name": "X", "city": "C", "latitude": 1.0, "longitude": 2.0})
+    assert op == "insert" and payload["dates_estimated"] is True
 
 
 def test_merge_fields_replaces_estimated_dates():
