@@ -1,27 +1,111 @@
 slug,name,city,state,tier,tm_keyword,seatgeek_query
 lollapalooza,Lollapalooza,Chicago,IL,flagship,Lollapalooza,Lollapalooza
 coachella,Coachella,Indio,CA,flagship,Coachella Valley Music,Coachella
-electric-daisy-carnival,Electric Daisy Carnival,Las Vegas,NV,flagship,Electric Daisy Carnival Las Vegas,EDC Las Vegas
+electric-daisy-carnival,Electric Daisy Carnival,Las Vegas,NV,flagship,Electric Daisy Carnival Las Vegas,Electric Daisy Carnival
+south-by-southwest,South by Southwest,Austin,TX,standard,SXSW,South by Southwest
 outside-lands,Outside Lands,San Francisco,CA,flagship,Outside Lands,Outside Lands
 ultra-music-festival,Ultra Music Festival,Miami,FL,flagship,Ultra Music Festival,Ultra Music Festival
-bonnaroo-music-and-arts-festival,Bonnaroo Music and Arts Festival,Manchester,TN,flagship,Bonnaroo,Bonnaroo
-austin-city-limits-music-festival,Austin City Limits Music Festival,Austin,TX,flagship,Austin City Limits Music Festival,Austin City Limits
+bonnaroo-music-and-arts-festival,Bonnaroo Music and Arts Festival,Manchester,TN,flagship,Bonnaroo,Bonnaroo Music and Arts Festival
+austin-city-limits-music-festival,Austin City Limits Music Festival,Austin,TX,flagship,Austin City Limits Music Festival,Austin City Limits Music Festival
 governors-ball,Governors Ball,New York,NY,flagship,Governors Ball,Governors Ball
 stagecoach,Stagecoach,Indio,CA,flagship,Stagecoach Festival,Stagecoach
+bottlerock-napa-valley,BottleRock Napa Valley,Napa,CA,standard,BottleRock Napa,BottleRock Napa Valley
 rolling-loud,Rolling Loud,Miami Gardens,FL,flagship,Rolling Loud,Rolling Loud
-new-orleans-jazz-heritage-festival,New Orleans Jazz & Heritage Festival,New Orleans,LA,flagship,New Orleans Jazz Heritage Festival,New Orleans Jazz Fest
-electric-forest,Electric Forest,Rothbury,MI,flagship,Electric Forest,Electric Forest
-south-by-southwest,South by Southwest,Austin,TX,standard,SXSW,SXSW
-bottlerock-napa-valley,BottleRock Napa Valley,Napa,CA,standard,BottleRock Napa,BottleRock
-firefly-music-festival,Firefly Music Festival,Dover,DE,standard,Firefly Music Festival,Firefly
+firefly-music-festival,Firefly Music Festival,Dover,DE,standard,Firefly Music Festival,Firefly Music Festival
 hangout-music-festival,Hangout Music Festival,Gulf Shores,AL,standard,Hangout Music Festival,Hangout Music Festival
+new-orleans-jazz-heritage-festival,New Orleans Jazz & Heritage Festival,New Orleans,LA,flagship,New Orleans Jazz Heritage Festival,New Orleans Jazz & Heritage Festival
 newport-folk-festival,Newport Folk Festival,Newport,RI,standard,Newport Folk Festival,Newport Folk Festival
-essence-festival-of-culture,Essence Festival of Culture,New Orleans,LA,standard,Essence Festival,Essence Festival
+essence-festival-of-culture,Essence Festival of Culture,New Orleans,LA,standard,Essence Festival,Essence Festival of Culture
 life-is-beautiful,Life is Beautiful,Las Vegas,NV,standard,Life is Beautiful Festival,Life is Beautiful
 pitchfork-music-festival,Pitchfork Music Festival,Chicago,IL,standard,Pitchfork Music Festival,Pitchfork Music Festival
 hard-summer,HARD Summer,Los Angeles,CA,standard,Hard Summer,HARD Summer
 ohana-festival,Ohana Festival,Dana Point,CA,standard,Ohana Festival,Ohana Festival
-summer-smash,Summer Smash,Chicago,IL,standard,Summer Smash,Summer Smash Festival
+summer-smash,Summer Smash,Chicago,IL,standard,Summer Smash,Summer Smash
 when-we-were-young,When We Were Young,Las Vegas,NV,standard,When We Were Young Festival,When We Were Young
 day-n-vegas,Day N Vegas,Las Vegas,NV,standard,Day N Vegas,Day N Vegas
-voodoo-fest,Voodoo Music + Arts Experience,New Orleans,LA,standard,Voodoo Fest,Voodoo Fest
+voodoo-fest,Voodoo Music + Arts Experience,New Orleans,LA,standard,Voodoo Fest,Voodoo Music + Arts Experience
+electric-forest,Electric Forest,Rothbury,MI,flagship,Electric Forest,Electric Forest
+burning-man,Burning Man,Black Rock City,NV,standard,Burning Man,Burning Man
+shaky-knees-music-festival,Shaky Knees Music Festival,Atlanta,GA,flagship,Shaky Knees,Shaky Knees Music Festival
+forecastle-festival,Forecastle Festival,Louisville,KY,standard,Forecastle,Forecastle Festival
+movement-electronic-music-festival,Movement Electronic Music Festival,Detroit,MI,standard,Movement Detroit,Movement Electronic Music Festival
+riot-fest,Riot Fest,Chicago,IL,flagship,Riot Fest,Riot Fest
+boston-calling-music-festival,Boston Calling Music Festival,Boston,MA,flagship,Boston Calling,Boston Calling Music Festival
+music-midtown,Music Midtown,Atlanta,GA,standard,Music Midtown,Music Midtown
+beale-street-music-festival,Beale Street Music Festival,Memphis,TN,standard,Beale Street Music Festival,Beale Street Music Festival
+newport-jazz-festival,Newport Jazz Festival,Newport,RI,standard,Newport Jazz Festival,Newport Jazz Festival
+north-coast-music-festival,North Coast Music Festival,Chicago,IL,standard,North Coast Music Festival,North Coast Music Festival
+cma-fest,CMA Fest,Nashville,TN,standard,CMA Fest,CMA Fest
+chicago-blues-festival,Chicago Blues Festival,Chicago,IL,standard,Chicago Blues Festival,Chicago Blues Festival
+telluride-bluegrass-festival,Telluride Bluegrass Festival,Telluride,CO,standard,Telluride Bluegrass,Telluride Bluegrass Festival
+telluride-jazz-festival,Telluride Jazz Festival,Telluride,CO,standard,Telluride Jazz,Telluride Jazz Festival
+pickathon,Pickathon,Happy Valley,OR,standard,Pickathon,Pickathon
+hardly-strictly-bluegrass,Hardly Strictly Bluegrass,San Francisco,CA,standard,Hardly Strictly Bluegrass,Hardly Strictly Bluegrass
+merlefest,MerleFest,Wilkesboro,NC,standard,MerleFest,MerleFest
+spring-awakening-music-festival,Spring Awakening Music Festival,Chicago,IL,standard,Spring Awakening,Spring Awakening Music Festival
+faster-horses,Faster Horses Festival,Brooklyn,MI,standard,Faster Horses,Faster Horses Festival
+watershed-festival,Watershed Festival,George,WA,standard,Watershed Festival,Watershed Festival
+louder-than-life,Louder Than Life,Louisville,KY,standard,Louder Than Life,Louder Than Life
+welcome-to-rockville,Welcome to Rockville,Daytona Beach,FL,standard,Welcome to Rockville,Welcome to Rockville
+aftershock-festival,Aftershock Festival,Sacramento,CA,standard,Aftershock Festival,Aftershock Festival
+suwannee-hulaween,Suwannee Hulaween,Live Oak,FL,standard,Suwannee Hulaween,Suwannee Hulaween
+sea-hear-now,Sea.Hear.Now,Asbury Park,NJ,standard,Sea Hear Now,Sea.Hear.Now
+okeechobee-music-and-arts-festival,Okeechobee Music & Arts Festival,Okeechobee,FL,standard,Okeechobee Music,Okeechobee Music & Arts Festival
+lightning-in-a-bottle,Lightning in a Bottle,Buena Vista,CA,standard,Lightning in a Bottle,Lightning in a Bottle
+camp-flog-gnaw-carnival,Camp Flog Gnaw Carnival,Los Angeles,CA,standard,Camp Flog Gnaw,Camp Flog Gnaw Carnival
+desert-daze,Desert Daze,Lake Perris,CA,standard,Desert Daze,Desert Daze
+edc-orlando,EDC Orlando,Orlando,FL,standard,Electric Daisy Carnival Orlando,EDC Orlando
+dirtybird-campout,Dirtybird Campout,Bradley,CA,standard,Dirtybird Campout,Dirtybird Campout
+furnace-fest,Furnace Fest,Birmingham,AL,standard,Furnace Fest,Furnace Fest
+crssd-festival,CRSSD Festival,San Diego,CA,standard,CRSSD Festival,CRSSD Festival
+high-sierra-music-festival,High Sierra Music Festival,Quincy,CA,standard,High Sierra Music Festival,High Sierra Music Festival
+kilby-block-party,Kilby Block Party,Salt Lake City,UT,standard,Kilby Block Party,Kilby Block Party
+tortuga-music-festival,Tortuga Music Festival,Fort Lauderdale,FL,standard,Tortuga Music Festival,Tortuga Music Festival
+sunfest,SunFest,West Palm Beach,FL,standard,SunFest,SunFest
+treefort-music-fest,Treefort Music Fest,Boise,ID,standard,Treefort Music Fest,Treefort Music Fest
+chicago-jazz-festival,Chicago Jazz Festival,Chicago,IL,standard,Chicago Jazz Festival,Chicago Jazz Festival
+summer-camp-music-festival,Summer Camp Music Festival,Chillicothe,IL,standard,Summer Camp Music Festival,Summer Camp Music Festival
+hinterland-music-festival,Hinterland Music Festival,St. Charles,IA,standard,Hinterland Music Festival,Hinterland Music Festival
+knotfest,Knotfest,Indianola,IA,standard,Knotfest,Knotfest
+80-35-music-festival,80/35 Music Festival,Des Moines,IA,standard,80/35 Music Festival,80/35 Music Festival
+buku-music-art-project,BUKU Music + Art Project,New Orleans,LA,standard,BUKU Music + Art Project,BUKU Music + Art Project
+french-quarter-festival,French Quarter Festival,New Orleans,LA,standard,French Quarter Festival,French Quarter Festival
+festival-international-de-louisiane,Festival International de Louisiane,Lafayette,LA,standard,Festival International de Louisiane,Festival International de Louisiane
+all-things-go-music-festival,All Things Go Music Festival,Columbia,MD,standard,All Things Go Music Festival,All Things Go Music Festival
+delfest,Delfest,Cumberland,MD,standard,Delfest,Delfest
+moonrise-festival,Moonrise Festival,Baltimore,MD,standard,Moonrise Festival,Moonrise Festival
+basilica-block-party,Basilica Block Party,Minneapolis,MN,standard,Basilica Block Party,Basilica Block Party
+rock-the-garden,Rock the Garden,Minneapolis,MN,standard,Rock the Garden,Rock the Garden
+maha-music-festival,Maha Music Festival,Omaha,NE,standard,Maha Music Festival,Maha Music Festival
+electric-zoo,Electric Zoo,New York,NY,standard,Electric Zoo,Electric Zoo
+camp-bisco,Camp Bisco,Scranton,PA,standard,Camp Bisco,Camp Bisco
+rochester-international-jazz-festival,Rochester International Jazz Festival,Rochester,NY,standard,Rochester International Jazz Festival,Rochester International Jazz Festival
+hopscotch-music-festival,Hopscotch Music Festival,Raleigh,NC,standard,Hopscotch Music Festival,Hopscotch Music Festival
+bunbury-music-festival,Bunbury Music Festival,Cincinnati,OH,standard,Bunbury Music Festival,Bunbury Music Festival
+sonic-temple-art-music-festival,Sonic Temple Art & Music Festival,Columbus,OH,standard,Sonic Temple Art & Music Festival,Sonic Temple Art & Music Festival
+gathering-of-the-juggalos,Gathering of the Juggalos,Thornville,OH,standard,Gathering of the Juggalos,Gathering of the Juggalos
+rocklahoma,Rocklahoma,Pryor,OK,standard,Rocklahoma,Rocklahoma
+norman-music-festival,Norman Music Festival,Norman,OK,standard,Norman Music Festival,Norman Music Festival
+made-in-america,Made in America,Philadelphia,PA,standard,Made in America,Made in America
+musikfest,Musikfest,Bethlehem,PA,standard,Musikfest,Musikfest
+the-peach-music-festival,The Peach Music Festival,Scranton,PA,standard,The Peach Music Festival,The Peach Music Festival
+philadelphia-folk-festival,Philadelphia Folk Festival,Schwenksville,PA,standard,Philadelphia Folk Festival,Philadelphia Folk Festival
+roots-picnic,Roots Picnic,Philadelphia,PA,standard,Roots Picnic,Roots Picnic
+carolina-country-music-fest,Carolina Country Music Fest,Myrtle Beach,SC,standard,Carolina Country Music Fest,Carolina Country Music Fest
+bristol-rhythm-roots-reunion,Bristol Rhythm & Roots Reunion,Bristol,TN,standard,Bristol Rhythm & Roots Reunion,Bristol Rhythm & Roots Reunion
+kerrville-folk-festival,Kerrville Folk Festival,Kerrville,TX,standard,Kerrville Folk Festival,Kerrville Folk Festival
+old-settler-s-music-festival,Old Settler's Music Festival,Driftwood,TX,standard,Old Settler's Music Festival,Old Settler's Music Festival
+blue-ridge-rock-festival,Blue Ridge Rock Festival,Danville,VA,standard,Blue Ridge Rock Festival,Blue Ridge Rock Festival
+something-in-the-water,Something in the Water,Virginia Beach,VA,standard,Something in the Water,Something in the Water
+bumbershoot,Bumbershoot,Seattle,WA,flagship,Bumbershoot,Bumbershoot
+lifest,Lifest,Oshkosh,WI,standard,Lifest,Lifest
+mile-of-music,Mile of Music,Appleton,WI,standard,Mile of Music,Mile of Music
+rock-fest,Rock Fest,Cadott,WI,standard,Rock Fest,Rock Fest
+summerfest,Summerfest,Milwaukee,WI,flagship,Summerfest,Summerfest
+innings-festival,Innings Festival,Tempe,AZ,standard,Innings Festival,Innings Festival
+lost-lands-music-festival,Lost Lands Music Festival,Legend Valley,OH,standard,Lost Lands Music Festival,Lost Lands Music Festival
+bourbon-beyond,Bourbon & Beyond,Louisville,KY,standard,Bourbon & Beyond,Bourbon & Beyond
+railbird-festival,Railbird Festival,Lexington,KY,standard,Railbird Festival,Railbird Festival
+sound-on-sound,Sound on Sound,Bridgeport,CT,standard,Sound on Sound,Sound on Sound
+adjacent-festival,Adjacent Festival,Atlantic City,NJ,standard,Adjacent Festival,Adjacent Festival
+iii-points,III Points,Miami,FL,standard,III Points,III Points

@@ -191,9 +191,15 @@ def merge_festival_fields(existing: dict | None, incoming: dict) -> tuple[str, d
     - everything else (name, accent_color, tags, website_url, …) is left untouched.
     Returns ('insert'|'update'|'noop', payload)."""
     if existing is None:
+        # New row must clear the v3.1 gate (coords + venue/city) or we'd insert a
+        # stub that red-fails the live validation and blocks the daily ETL. Missing
+        # dates are allowed iff flagged dates_estimated (the gate's honest escape).
+        lat, lng = incoming.get("latitude"), incoming.get("longitude")
+        has_place = bool(incoming.get("venue") or incoming.get("city"))
+        if lat is None or lng is None or not has_place:
+            return "noop", {}
         payload = {k: v for k, v in incoming.items() if v is not None}
-        if incoming.get("start_date") and incoming.get("end_date"):
-            payload["dates_estimated"] = False
+        payload["dates_estimated"] = not (incoming.get("start_date") and incoming.get("end_date"))
         return "insert", payload
 
     upd: dict = {}
