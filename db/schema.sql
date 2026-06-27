@@ -311,23 +311,37 @@ returns table (
   description text,
   score       float
 ) as $$
-  select
-    'festival'::text as type,
-    f.id, f.slug, f.name,
-    f.description,
-    similarity(f.name, query) as score
+  -- v3.3: weighted ranking — name/city trigram similarity boosted by upcoming
+  -- recency (festivals) and Spotify popularity (artists). See migration
+  -- 20260626_v3_3_search_ranking.sql.
+  select 'festival'::text as type, f.id, f.slug, f.name, f.description,
+         greatest(similarity(f.name, query), similarity(coalesce(f.city, ''), query))
+           * (case when f.start_date >= current_date then 1.25
+                   when f.start_date is null then 1.0
+                   else 0.85 end) as score
   from festivals f
-  where f.name % query or f.tags @> array[lower(query)]
+  where (f.name % query or f.city % query or f.tags @> array[lower(query)])
+    and f.is_active
   union all
-  select
-    'artist'::text,
-    a.id, a.slug, a.name,
-    a.bio,
-    similarity(a.name, query) as score
+  select 'artist'::text, a.id, a.slug, a.name, a.bio,
+         similarity(a.name, query)
+           * (0.8 + 0.4 * coalesce(a.spotify_popularity, 0) / 100.0) as score
   from artists a
   where a.name % query or a.genres @> array[lower(query)]
   order by score desc
-  limit 20;
+  limit 25;
+$$ language sql stable;
+
+-- "Did you mean?" — closest few names ignoring the % threshold (v3.3 zero-result UX).
+create or replace function search_suggest(query text)
+returns table (type text, slug text, name text, score float) as $$
+  select 'festival'::text, f.slug, f.name, similarity(f.name, query) as score
+  from festivals f where f.is_active
+  union all
+  select 'artist'::text, a.slug, a.name, similarity(a.name, query)
+  from artists a
+  order by score desc
+  limit 3;
 $$ language sql stable;
 
 -- ============================================================

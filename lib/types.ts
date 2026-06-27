@@ -176,3 +176,11 @@ export interface SearchResult {
   description: string | null;
   score: number;
 }
+
+/** "Did you mean?" suggestion (v3.3) — closest name regardless of threshold. */
+export interface Suggestion {
+  type: "festival" | "artist";
+  slug: string;
+  name: string;
+  score: number;
+}

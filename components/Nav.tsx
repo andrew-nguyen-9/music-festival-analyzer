@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SearchCommand from "@/components/SearchCommand";
 
 /**
  * Global top nav. Transparent over heroes, sticky. Festival pages render
@@ -26,6 +27,7 @@ export default function Nav() {
           >
             About
           </Link>
+          <SearchCommand />
         </nav>
       </div>
     </header>
