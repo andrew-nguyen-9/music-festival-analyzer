@@ -14,6 +14,7 @@ import type {
   ArtistAppearance,
   ArtistSpotifyCache,
   Festival,
+  FestivalGuide,
   FunFact,
   FunFactsRow,
   LineupEntry,
@@ -408,6 +409,28 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
   } catch (e) {
     warn("searchAll", e);
     return [];
+  }
+}
+
+/** Published editorial guide for a festival, newest first (v3.9). */
+export async function getFestivalGuide(
+  festivalId: string,
+): Promise<FestivalGuide | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("festival_guides")
+      .select("id, festival_id, slug, title, body_md, author, published_at")
+      .eq("festival_id", festivalId)
+      .not("published_at", "is", null)
+      .order("published_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return ((data as FestivalGuide[]) ?? [])[0] ?? null;
+  } catch (e) {
+    warn("getFestivalGuide", e);
+    return null;
   }
 }
 

@@ -184,3 +184,14 @@ export interface Suggestion {
   name: string;
   score: number;
 }
+
+/** Editorial guide for a festival (v3.9). body_md is markdown. */
+export interface FestivalGuide {
+  id: string;
+  festival_id: string;
+  slug: string;
+  title: string;
+  body_md: string;
+  author: string | null;
+  published_at: string | null;
+}
