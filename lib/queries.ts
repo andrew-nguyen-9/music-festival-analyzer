@@ -21,6 +21,7 @@ import type {
   SearchResult,
   SocialPost,
   Stage,
+  Suggestion,
 } from "./types";
 
 function warn(scope: string, error: unknown): void {
@@ -406,6 +407,21 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     return (data as SearchResult[]) ?? [];
   } catch (e) {
     warn("searchAll", e);
+    return [];
+  }
+}
+
+/** "Did you mean?" suggestions — closest names regardless of % threshold (v3.3). */
+export async function searchSuggest(query: string): Promise<Suggestion[]> {
+  const sb = getSupabase();
+  const q = query.trim();
+  if (!sb || q.length === 0) return [];
+  try {
+    const { data, error } = await sb.rpc("search_suggest", { query: q });
+    if (error) throw error;
+    return (data as Suggestion[]) ?? [];
+  } catch (e) {
+    warn("searchSuggest", e);
     return [];
   }
 }
