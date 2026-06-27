@@ -8,12 +8,16 @@ import MediaGallery from "@/components/MediaGallery";
 import SocialFeed from "@/components/SocialFeed";
 import FunFactsWidget from "@/components/FunFactsWidget";
 import RelatedFestivals from "@/components/RelatedFestivals";
+import FestivalGuide from "@/components/FestivalGuide";
 import SmartPlaylistButton from "@/components/SmartPlaylistButton";
 import Link from "next/link";
-import { getFestivalBySlug, getFestivalPageData } from "@/lib/queries";
+import { getFestivalBySlug, getFestivalPageData, getFestivalGuide } from "@/lib/queries";
 import { getFestivalState, groupLineupByDay } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+// ISR (v3.10): cache the rendered page, refresh every 10 min. Festival data
+// changes at most daily (cron), so on-demand ISR is a large TTFB win at catalog
+// scale vs. force-dynamic, with acceptable staleness.
+export const revalidate = 600;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -37,6 +41,7 @@ export default async function FestivalPage({ params }: PageProps) {
   if (!data) notFound();
 
   const { festival, year, lineup, media, social, funFacts, related } = data;
+  const guide = await getFestivalGuide(festival.id);
 
   const hasSchedule = lineup.some((e) => e.day != null);
   const state = getFestivalState(festival.end_date, lineup.length, hasSchedule);
@@ -90,6 +95,7 @@ export default async function FestivalPage({ params }: PageProps) {
           </section>
         )}
 
+        <FestivalGuide guide={guide} />
         <MediaGallery media={media} />
         <SocialFeed posts={social} />
         <FunFactsWidget facts={funFacts} festivalName={festival.name} year={year} />

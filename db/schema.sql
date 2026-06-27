@@ -211,6 +211,52 @@ create table if not exists stages (
 );
 
 -- ============================================================
+-- SOURCES + INGESTION RUN-LOG (v3.0.1) — ingestion framework backing store
+-- ============================================================
+-- `sources`: the ingestion source registry. adapter_key → a Python SourceAdapter
+-- (v3.0.2); adapter_type is the coarse kind; config carries per-source params so
+-- adding a source is a row, not a code fork. trust = provenance label rows get
+-- (same vocab as lineups.source) — free text so the vocab can grow.
+create table if not exists sources (
+  id           uuid primary key default uuid_generate_v4(),
+  slug         text unique not null,
+  name         text not null,
+  adapter_type text not null check (adapter_type in ('scrape', 'api', 'manual')),
+  adapter_key  text not null,
+  config       jsonb not null default '{}'::jsonb,
+  trust        text,
+  enabled      boolean not null default true,
+  schedule     text,
+  created_at   timestamptz default now(),
+  updated_at   timestamptz default now()
+);
+
+-- `ingestion_runs`: one row per adapter invocation (run-log). The orchestrator
+-- opens 'running' at start, closes with counts + per-stage errors. Spine for
+-- v3.11 dashboards + v3.8 change-detection. festival_slug null = catalog-wide.
+create table if not exists ingestion_runs (
+  id             uuid primary key default uuid_generate_v4(),
+  source_id      uuid references sources(id) on delete set null,
+  festival_slug  text,
+  status         text not null default 'running'
+                   check (status in ('running', 'success', 'error', 'partial')),
+  started_at     timestamptz not null default now(),
+  finished_at    timestamptz,
+  rows_upserted  int not null default 0,
+  rows_skipped   int not null default 0,
+  errors         jsonb not null default '[]'::jsonb,
+  stats          jsonb not null default '{}'::jsonb,
+  created_at     timestamptz default now()
+);
+
+-- Per-row provenance on lineups: which source row wrote it + a 0..1 confidence,
+-- so v3.2's per-source conflict resolution has a key to coalesce-forward on.
+-- Added after `sources` exists; ON DELETE SET NULL so dropping a source can't
+-- cascade-delete real lineup rows. (lineups.source from v2.3.3 stays the trust label.)
+alter table lineups add column if not exists source_id  uuid references sources(id) on delete set null;
+alter table lineups add column if not exists confidence real;
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 
@@ -246,6 +292,12 @@ create index if not exists idx_artist_spotify_cache_expires on artist_spotify_ca
 -- Stage lookups by festival (added v2.3.4)
 create index if not exists idx_stages_festival on stages (festival_id);
 
+-- Ingestion run-log lookups (v3.0.1): recent runs per source + freshness per festival
+create index if not exists idx_ingestion_runs_source_started
+  on ingestion_runs (source_id, started_at desc);
+create index if not exists idx_ingestion_runs_festival_started
+  on ingestion_runs (festival_slug, started_at desc) where festival_slug is not null;
+
 -- ============================================================
 -- FULL-TEXT SEARCH FUNCTION
 -- Supports searching by festival name, city, tag, genre, artist name
@@ -259,23 +311,37 @@ returns table (
   description text,
   score       float
 ) as $$
-  select
-    'festival'::text as type,
-    f.id, f.slug, f.name,
-    f.description,
-    similarity(f.name, query) as score
+  -- v3.3: weighted ranking — name/city trigram similarity boosted by upcoming
+  -- recency (festivals) and Spotify popularity (artists). See migration
+  -- 20260626_v3_3_search_ranking.sql.
+  select 'festival'::text as type, f.id, f.slug, f.name, f.description,
+         greatest(similarity(f.name, query), similarity(coalesce(f.city, ''), query))
+           * (case when f.start_date >= current_date then 1.25
+                   when f.start_date is null then 1.0
+                   else 0.85 end) as score
   from festivals f
-  where f.name % query or f.tags @> array[lower(query)]
+  where (f.name % query or f.city % query or f.tags @> array[lower(query)])
+    and f.is_active
   union all
-  select
-    'artist'::text,
-    a.id, a.slug, a.name,
-    a.bio,
-    similarity(a.name, query) as score
+  select 'artist'::text, a.id, a.slug, a.name, a.bio,
+         similarity(a.name, query)
+           * (0.8 + 0.4 * coalesce(a.spotify_popularity, 0) / 100.0) as score
   from artists a
   where a.name % query or a.genres @> array[lower(query)]
   order by score desc
-  limit 20;
+  limit 25;
+$$ language sql stable;
+
+-- "Did you mean?" — closest few names ignoring the % threshold (v3.3 zero-result UX).
+create or replace function search_suggest(query text)
+returns table (type text, slug text, name text, score float) as $$
+  select 'festival'::text, f.slug, f.name, similarity(f.name, query) as score
+  from festivals f where f.is_active
+  union all
+  select 'artist'::text, a.slug, a.name, similarity(a.name, query)
+  from artists a
+  order by score desc
+  limit 3;
 $$ language sql stable;
 
 -- ============================================================
@@ -305,6 +371,8 @@ alter table fun_facts    enable row level security;
 alter table tags         enable row level security;
 alter table artist_spotify_cache enable row level security;
 alter table stages       enable row level security;
+alter table sources        enable row level security;
+alter table ingestion_runs enable row level security;
 
 -- Public read policies
 create policy "Public read festivals"    on festivals    for select using (true);
@@ -316,6 +384,8 @@ create policy "Public read fun_facts"    on fun_facts    for select using (true)
 create policy "Public read tags"         on tags         for select using (true);
 create policy "Public read artist_spotify_cache" on artist_spotify_cache for select using (true);
 create policy "Public read stages"       on stages       for select using (true);
+create policy "Public read sources"        on sources        for select using (true);
+create policy "Public read ingestion_runs" on ingestion_runs for select using (true);
 
 -- ============================================================
 -- UPDATED_AT triggers
@@ -389,4 +459,7 @@ create trigger lineups_skip_unverified_insert
   for each row execute function skip_unverified_insert();
 
 create trigger stages_updated_at before update on stages
+  for each row execute function set_updated_at();
+
+create trigger sources_updated_at before update on sources
   for each row execute function set_updated_at();

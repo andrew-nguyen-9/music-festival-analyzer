@@ -117,6 +117,118 @@ jobs:
             python location_enricher.py
           fi
 
+  ingest-festivals:
+    name: Aggregate festival metadata (v3.2)
+    runs-on: ubuntu-latest
+    # Sharded across parallel runners by a stable hash of the target slug so the
+    # daily refresh scales to 200+ festivals without timing out. Each shard also
+    # rotates: it only refreshes its stalest --batch, keeping every festival inside
+    # the 30-day freshness window without re-fetching all of them every day.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Aggregate festival metadata (stalest batch in this shard)
+        working-directory: pipeline
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
+        run: python ingest_festivals.py --batch 10 --shard ${{ matrix.shard }} --shards 4
+
+  ingest-lineups:
+    name: Aggregate flagship lineups (v3.2.7)
+    runs-on: ubuntu-latest
+    # Flagship lineup DEPTH via the Ticketmaster lineup adapter, sharded across
+    # parallel runners. Few sources, so the shard alone bounds time (no rotation).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Fetch flagship lineups (this shard)
+        working-directory: pipeline
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+        run: python ingest_lineups.py --shard ${{ matrix.shard }} --shards 4
+
+  validate-live:
+    name: Validate live data + freshness (v3.1 gate)
+    runs-on: ubuntu-latest
+    # Runs after the write jobs so it gates the post-ingest state. A red here
+    # fails the daily ETL — the live counterpart to ci.yml's offline self-test.
+    needs: [enrich-artists, sync-spotify, enrich-locations, ingest-festivals, ingest-lineups]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Validate every live festival + freshness
+        working-directory: pipeline
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python validate_data.py --max-age-days 30
+
+  recompute-recs:
+    name: Recompute artist recommendations (v3.6)
+    runs-on: ubuntu-latest
+    # Nightly neighbour precompute (genre + co-lineup heuristic). Runs after the
+    # write jobs so it sees the freshest artists/lineups; not gated by validate-live
+    # (recommendations aren't a data-validity contract).
+    needs: [enrich-artists, ingest-festivals, ingest-lineups]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Recompute artist neighbours
+        working-directory: pipeline
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python recommend.py
+
   fetch-media:
     name: Fetch Festival Media from Unsplash
     runs-on: ubuntu-latest

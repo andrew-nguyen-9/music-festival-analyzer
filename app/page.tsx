@@ -1,6 +1,7 @@
 import HeroSection from "@/components/HeroSection";
 import FeaturedFestivals from "@/components/FeaturedFestivals";
 import FestivalGrid from "@/components/FestivalGrid";
+import ForYou from "@/components/ForYou";
 import { getFestivals, getFeaturedFestivals } from "@/lib/queries";
 
 // Live data — render at request time.
@@ -15,6 +16,7 @@ export default async function HomePage() {
   return (
     <>
       <HeroSection />
+      <ForYou />
       <FeaturedFestivals festivals={featured} />
       <div className="mx-auto max-w-wide px-5 md:px-8">
         <h2 className="text-heading font-semibold text-white">

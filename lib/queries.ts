@@ -14,6 +14,8 @@ import type {
   ArtistAppearance,
   ArtistSpotifyCache,
   Festival,
+  FestivalGuide,
+  IngestionRunSummary,
   FunFact,
   FunFactsRow,
   LineupEntry,
@@ -21,6 +23,7 @@ import type {
   SearchResult,
   SocialPost,
   Stage,
+  Suggestion,
 } from "./types";
 
 function warn(scope: string, error: unknown): void {
@@ -406,6 +409,63 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     return (data as SearchResult[]) ?? [];
   } catch (e) {
     warn("searchAll", e);
+    return [];
+  }
+}
+
+/** Recent ingestion runs for the observability dashboard (v3.11). Public-read. */
+export async function getRecentIngestionRuns(
+  limit = 80,
+): Promise<IngestionRunSummary[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("ingestion_runs")
+      .select("festival_slug, status, started_at, finished_at, rows_upserted, rows_skipped")
+      .order("started_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data as IngestionRunSummary[]) ?? [];
+  } catch (e) {
+    warn("getRecentIngestionRuns", e);
+    return [];
+  }
+}
+
+/** Published editorial guide for a festival, newest first (v3.9). */
+export async function getFestivalGuide(
+  festivalId: string,
+): Promise<FestivalGuide | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("festival_guides")
+      .select("id, festival_id, slug, title, body_md, author, published_at")
+      .eq("festival_id", festivalId)
+      .not("published_at", "is", null)
+      .order("published_at", { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return ((data as FestivalGuide[]) ?? [])[0] ?? null;
+  } catch (e) {
+    warn("getFestivalGuide", e);
+    return null;
+  }
+}
+
+/** "Did you mean?" suggestions — closest names regardless of % threshold (v3.3). */
+export async function searchSuggest(query: string): Promise<Suggestion[]> {
+  const sb = getSupabase();
+  const q = query.trim();
+  if (!sb || q.length === 0) return [];
+  try {
+    const { data, error } = await sb.rpc("search_suggest", { query: q });
+    if (error) throw error;
+    return (data as Suggestion[]) ?? [];
+  } catch (e) {
+    warn("searchSuggest", e);
     return [];
   }
 }

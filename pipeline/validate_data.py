@@ -12,15 +12,20 @@ Two modes:
                 etl_daily.
 
 Validations:
-  festival : has start/end (or flagged dates_estimated); start <= end; has
-             venue or city; has lat/lng in range.
-  schedule : each set has day/stage/start/end; day within the festival range;
-             end after start; no two sets overlap on the same stage+day.
-  stages   : every stage row has coordinates.
+  festival  : has start/end (or flagged dates_estimated); start <= end; has
+              venue or city; has lat/lng in range.
+  schedule  : each set has day/stage/start/end; day within the festival range;
+              end after start; no two sets overlap on the same stage+day.
+  stages    : every stage row has coordinates.
+  freshness : every festival that is *actively ingested* (has >= 1 successful
+              ingestion_run) has a successful run within --max-age-days. Manually
+              seeded festivals with no runs have no freshness contract yet and are
+              skipped (they come under management in v3.2).
 
 Run:
     python validate_data.py --self-test
     python validate_data.py --festival lollapalooza
+    python validate_data.py --max-age-days 30
 """
 
 from __future__ import annotations
@@ -29,12 +34,21 @@ import os
 import sys
 import argparse
 from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 
 
 def _mins(t: str) -> int:
     # Accept "HH:MM" (curated schedule) and "HH:MM:SS" (Postgres time columns).
     h, m = t.split(":")[:2]
     return int(h) * 60 + int(m)
+
+
+def _parse_iso(ts: str) -> datetime:
+    # Postgres timestamptz serializes as e.g. "2026-06-25T20:03:30.296482+00:00"
+    # or with a trailing "Z". Normalize so fromisoformat works on 3.9–3.13.
+    ts = ts.replace("Z", "+00:00")
+    dt = datetime.fromisoformat(ts)
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 # ── Pure validators (no DB) ────────────────────────────────────
@@ -98,9 +112,45 @@ def validate_stages(stages: list[dict]) -> list[str]:
     ]
 
 
+def stale_festivals(latest_success: dict[str, str], now: datetime, max_age_days: int) -> list[str]:
+    """latest_success: festival_slug -> ISO timestamp of its most recent SUCCESSFUL
+    ingestion run. A festival absent from this map has no successful run on record
+    and therefore no freshness contract yet (manual seed) — it is not stale.
+    Returns the slugs whose newest success is older than max_age_days."""
+    cutoff = now - timedelta(days=max_age_days)
+    return sorted(
+        f"{slug}: last successful ingest {ts} older than {max_age_days}d"
+        for slug, ts in latest_success.items()
+        if _parse_iso(ts) < cutoff
+    )
+
+
 # ── Live DB mode ───────────────────────────────────────────────
 
-def _run_live(target_slug: str | None) -> int:
+def _check_freshness(sb, max_age_days: int, console) -> list[str]:
+    """Newest successful ingestion_run per festival_slug, vs. now - max_age_days.
+    Catalog-wide runs (festival_slug null) carry no per-festival contract — skipped.
+    If ingestion_runs is absent (v3.0.1 migration not yet applied to this DB), the
+    freshness contract can't be evaluated — warn loudly and skip, rather than crash
+    the data-validation gate on an ops gap."""
+    try:
+        runs = sb.table("ingestion_runs").select("festival_slug, started_at").eq(
+            "status", "success").not_.is_("festival_slug", "null").execute().data or []
+    except Exception as e:
+        if "ingestion_runs" in str(e):
+            console.print("[yellow]⚠ freshness skipped: ingestion_runs missing — "
+                          "apply db/migrations/20260625_v3_0_1_source_registry_and_run_log.sql[/yellow]")
+            return []
+        raise
+    latest: dict[str, str] = {}
+    for r in runs:
+        slug, ts = r["festival_slug"], r["started_at"]
+        if slug and (slug not in latest or ts > latest[slug]):
+            latest[slug] = ts
+    return stale_festivals(latest, datetime.now(timezone.utc), max_age_days)
+
+
+def _run_live(target_slug: str | None, max_age_days: int = 30) -> int:
     from dotenv import load_dotenv
     from supabase import create_client
     from rich.console import Console
@@ -141,10 +191,17 @@ def _run_live(target_slug: str | None) -> int:
         else:
             console.print(f"[green]✓ {f['slug']}[/green]")
 
+    # Freshness gate: skip when scoped to one festival (it's a catalog-wide check).
+    stale = [] if target_slug else _check_freshness(sb, max_age_days, console)
+    for s in stale:
+        console.print(f"[red]✗ stale: {s}[/red]")
+    all_errors += stale
+
     if all_errors:
         console.print(f"\n[bold red]{len(all_errors)} validation error(s).[/bold red]")
         return 1
-    console.print(f"\n[bold green]All {len(festivals)} festival(s) valid.[/bold green]")
+    console.print(f"\n[bold green]All {len(festivals)} festival(s) valid; "
+                  f"none stale (> {max_age_days}d).[/bold green]")
     return 0
 
 
@@ -186,6 +243,16 @@ def _self_test() -> None:
     # 5. Missing stage coordinates are caught.
     assert validate_stages([{"name": "S", "festival_id": "abcd1234", "latitude": None, "longitude": None}])
 
+    # 5b. Freshness: only festivals WITH a successful run can be stale; one over
+    #     the threshold flags, one under does not, and an empty map is clean.
+    now = datetime(2026, 6, 25, tzinfo=timezone.utc)
+    fresh = stale_festivals({
+        "old-fest": "2026-05-01T00:00:00+00:00",   # 55 days → stale at 30d
+        "new-fest": "2026-06-20T00:00:00Z",        # 5 days → fresh (also tests Z suffix)
+    }, now, max_age_days=30)
+    assert fresh == ["old-fest: last successful ingest 2026-05-01T00:00:00+00:00 older than 30d"], fresh
+    assert stale_festivals({}, now, 30) == []  # no runs on record → nothing stale
+
     # 6. Postgres time columns serialize as HH:MM:SS — must parse, not crash.
     assert _mins("20:30:00") == 1230
     assert validate_schedule([
@@ -200,12 +267,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Validate festival dates/locations/schedules")
     parser.add_argument("--self-test", action="store_true", help="offline checks (CI gate)")
     parser.add_argument("--festival", type=str, help="limit live mode to one slug")
+    parser.add_argument("--max-age-days", type=int, default=30,
+                        help="freshness threshold: fail if an ingested festival has no success within N days")
     args = parser.parse_args()
 
     if args.self_test:
         _self_test()
         return
-    sys.exit(_run_live(args.festival))
+    sys.exit(_run_live(args.festival, args.max_age_days))
 
 
 if __name__ == "__main__":

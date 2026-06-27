@@ -44,8 +44,9 @@ jobs:
           python-version: "3.11"
 
       # Offline self-tests only — no Supabase/Spotify/Anthropic. Pure-python deps.
+      # (python-dotenv + rich are imported at module load by ingest.py.)
       - name: Install self-test deps
-        run: pip install python-slugify requests tenacity
+        run: pip install python-slugify requests tenacity python-dotenv rich
 
       - name: Run pipeline self-tests
         working-directory: pipeline
@@ -56,3 +57,7 @@ jobs:
           python geocoder.py
           python location_enricher.py --self-test
           python test_idempotency.py
+          python ingest.py --self-test
+          python test_aggregator.py
+          python recommend.py --self-test
+          python notify.py --self-test
