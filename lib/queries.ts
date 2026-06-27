@@ -15,6 +15,7 @@ import type {
   ArtistSpotifyCache,
   Festival,
   FestivalGuide,
+  IngestionRunSummary,
   FunFact,
   FunFactsRow,
   LineupEntry,
@@ -408,6 +409,26 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
     return (data as SearchResult[]) ?? [];
   } catch (e) {
     warn("searchAll", e);
+    return [];
+  }
+}
+
+/** Recent ingestion runs for the observability dashboard (v3.11). Public-read. */
+export async function getRecentIngestionRuns(
+  limit = 80,
+): Promise<IngestionRunSummary[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("ingestion_runs")
+      .select("festival_slug, status, started_at, finished_at, rows_upserted, rows_skipped")
+      .order("started_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data as IngestionRunSummary[]) ?? [];
+  } catch (e) {
+    warn("getRecentIngestionRuns", e);
     return [];
   }
 }

@@ -15,7 +15,9 @@ import {
 } from "@/lib/queries";
 import { getSimilarArtists } from "@/lib/recommendations";
 
-export const dynamic = "force-dynamic";
+// ISR (v3.10): cache + refresh every 10 min — artist data is cron-fed, so this
+// trades minor staleness for a big TTFB win across many artist pages.
+export const revalidate = 600;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
