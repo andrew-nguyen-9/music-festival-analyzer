@@ -14,7 +14,10 @@ import Link from "next/link";
 import { getFestivalBySlug, getFestivalPageData, getFestivalGuide } from "@/lib/queries";
 import { getFestivalState, groupLineupByDay } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+// ISR (v3.10): cache the rendered page, refresh every 10 min. Festival data
+// changes at most daily (cron), so on-demand ISR is a large TTFB win at catalog
+// scale vs. force-dynamic, with acceptable staleness.
+export const revalidate = 600;
 
 interface PageProps {
   params: Promise<{ slug: string }>;

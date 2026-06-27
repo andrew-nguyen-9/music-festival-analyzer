@@ -2,6 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    // v3.10: cache optimized remote images for a day (artist/festival art is
+    // stable); modern formats first to cut bytes.
+    minimumCacheTTL: 86400,
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       // Unsplash CDN (festival + media photos)
       { protocol: "https", hostname: "images.unsplash.com" },

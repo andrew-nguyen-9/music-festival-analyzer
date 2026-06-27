@@ -185,6 +185,16 @@ export interface Suggestion {
   score: number;
 }
 
+/** Ingestion run-log row for the observability dashboard (v3.11). */
+export interface IngestionRunSummary {
+  festival_slug: string | null;
+  status: string; // running | success | partial | error
+  started_at: string;
+  finished_at: string | null;
+  rows_upserted: number | null;
+  rows_skipped: number | null;
+}
+
 /** Editorial guide for a festival (v3.9). body_md is markdown. */
 export interface FestivalGuide {
   id: string;

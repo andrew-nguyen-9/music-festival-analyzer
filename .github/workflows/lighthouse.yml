@@ -1,0 +1,30 @@
+name: Lighthouse — Web Vitals budgets (v3.12)
+
+# Deploy-gate carryover (v2 tracked → v3.12 enforced): builds the app and asserts
+# Lighthouse budgets from .lighthouserc.json. Runs secret-free — with no Supabase
+# env the app renders offline/empty states, which is sufficient to measure the
+# shell's performance, a11y, CLS, and SEO budgets.
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lh-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14.x autorun
