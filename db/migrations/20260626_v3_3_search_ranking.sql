@@ -35,6 +35,10 @@ returns table (
 $$ language sql stable;
 
 -- "Did you mean?" — closest few names ignoring the % threshold, for zero-result UX.
+-- Only invoked on zero-result searches, so the unindexed similarity sort is
+-- acceptable at the current catalog size (hundreds of festivals, low-thousands of
+-- artists). ponytail: if the artist table reaches 10k+, switch to a GiST KNN index
+-- (name <-> query) so this stays index-backed on the latency path.
 create or replace function search_suggest(query text)
 returns table (type text, slug text, name text, score float) as $$
   select 'festival'::text, f.slug, f.name, similarity(f.name, query) as score

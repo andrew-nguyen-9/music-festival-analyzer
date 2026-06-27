@@ -14,6 +14,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 
 
 # ── Pure change detection ──────────────────────────────────────
@@ -24,13 +25,21 @@ def lineup_delta(prev: set, curr: set) -> dict:
 
 def notify_events(delta: dict, favorites_by_user: dict[str, set]) -> list[dict]:
     """For each user, emit one event per favourited artist that was added/dropped.
-    favorites_by_user: user_id -> set of favourited artist_ids."""
+    favorites_by_user: user_id -> set of favourited artist_ids.
+
+    Invert favourites once (artist -> users) and look up each changed artist, so
+    cost is O(total_favorites + changes) rather than O(changes × all_users) — the
+    fan-out path must not scan every user per changed artist."""
+    fans_of: dict[str, list[str]] = defaultdict(list)
+    for user_id, favs in favorites_by_user.items():
+        for artist_id in favs:
+            fans_of[artist_id].append(user_id)
+
     events: list[dict] = []
     for kind in ("added", "removed"):
         for artist_id in delta.get(kind, []):
-            for user_id, favs in favorites_by_user.items():
-                if artist_id in favs:
-                    events.append({"user_id": user_id, "artist_id": artist_id, "change": kind})
+            for user_id in fans_of.get(artist_id, []):
+                events.append({"user_id": user_id, "artist_id": artist_id, "change": kind})
     return events
 
 
