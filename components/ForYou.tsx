@@ -6,7 +6,7 @@
 // neighbours. Renders nothing until there are favourites + recs, so the generic
 // home is unchanged for new visitors.
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import ArtistMiniCard from "@/components/ArtistMiniCard";
 import { listFavorites, subscribeFavorites } from "@/lib/favorites";
 import type { SimilarArtist } from "@/lib/recommendations";
 
@@ -54,20 +54,7 @@ export default function ForYou() {
       </p>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {recs.map((a) => (
-          <Link
-            key={a.slug}
-            href={`/artist/${a.slug}`}
-            className="group rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-accent hover:bg-white/10"
-          >
-            <span className="block truncate font-medium text-white group-hover:text-accent">
-              {a.name}
-            </span>
-            {a.genres.length > 0 && (
-              <span className="mt-1 block truncate text-xs text-white/50">
-                {a.genres.slice(0, 2).join(" · ")}
-              </span>
-            )}
-          </Link>
+          <ArtistMiniCard key={a.slug} slug={a.slug} name={a.name} genres={a.genres} />
         ))}
       </div>
     </section>

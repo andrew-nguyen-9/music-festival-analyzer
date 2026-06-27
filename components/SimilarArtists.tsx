@@ -1,4 +1,4 @@
-import Link from "next/link";
+import ArtistMiniCard from "@/components/ArtistMiniCard";
 import type { SimilarArtist } from "@/lib/recommendations";
 
 // "Fans also like" — precomputed artist neighbours (v3.6). Presentational; the
@@ -18,20 +18,7 @@ export default function SimilarArtists({
       </h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
         {artists.map((a) => (
-          <Link
-            key={a.slug}
-            href={`/artist/${a.slug}`}
-            className="group rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-accent hover:bg-white/10"
-          >
-            <span className="block truncate font-medium text-white group-hover:text-accent">
-              {a.name}
-            </span>
-            {a.genres.length > 0 && (
-              <span className="mt-1 block truncate text-xs text-white/50">
-                {a.genres.slice(0, 2).join(" · ")}
-              </span>
-            )}
-          </Link>
+          <ArtistMiniCard key={a.slug} slug={a.slug} name={a.name} genres={a.genres} />
         ))}
       </div>
     </section>

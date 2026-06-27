@@ -77,14 +77,17 @@ export async function getRecommendedArtists(
   const sb = getSupabase();
   if (!sb || seedIds.length === 0) return [];
   try {
+    // Fetch ALL neighbour rows for the seeds (artist_neighbors keeps ≤ top_k≈20
+    // per artist) and aggregate in memory. A global `.order(score).limit()` here
+    // would truncate by raw per-row score BEFORE summing, dropping an artist that
+    // recurs across many seeds — exactly the cross-seed signal we want to keep.
     const { data, error } = await sb
       .from("artist_neighbors")
       .select(
         "neighbor_id, score, reason, neighbor:artists!artist_neighbors_neighbor_id_fkey(slug, name, image_url, genres)",
       )
       .in("artist_id", seedIds)
-      .order("score", { ascending: false })
-      .limit(seedIds.length * 12);
+      .limit(seedIds.length * 25);
     if (error) throw error;
 
     const seeds = new Set(seedIds);

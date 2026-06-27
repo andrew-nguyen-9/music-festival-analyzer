@@ -67,7 +67,10 @@ def compute_neighbors(artists: list[dict], lineups: list[dict], top_k: int = 20,
             g = jaccard(ag, genres[bid])
             bb = bills.get(bid, set())
             shared = len(ab & bb)
-            c = shared / min(len(ab), len(bb)) if ab and bb and shared else 0.0
+            # Symmetric (Jaccard) denominator, NOT min(): min() gives a 1-bill
+            # obscure artist c=1.0 against a 40-bill superstar they happened to
+            # share one stage with, flooding neighbours with popularity skew.
+            c = shared / len(ab | bb) if shared else 0.0
             if g == 0.0 and c == 0.0:
                 continue
             score = w_genre * g + w_colineup * c + 0.001 * pop[bid] / 100.0

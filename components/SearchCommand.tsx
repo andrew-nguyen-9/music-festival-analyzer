@@ -48,26 +48,35 @@ export default function SearchCommand() {
     }
   }, [open]);
 
-  // Debounced search.
+  // Debounced search. `cancelled` guards every state write so (a) a superseded
+  // request can't overwrite newer results (out-of-order responses) and (b) the
+  // loading flag can't get stuck when the query drops below 2 chars mid-debounce.
   useEffect(() => {
     const term = q.trim();
     if (term.length < 2) {
       setData(null);
+      setLoading(false);
       return;
     }
+    let cancelled = false;
     setLoading(true);
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`);
-        setData((await res.json()) as Payload);
+        const payload = (await res.json()) as Payload;
+        if (cancelled) return;
+        setData(payload);
         setActive(0);
       } catch {
-        setData({ query: term, results: [], suggestions: [] });
+        if (!cancelled) setData({ query: term, results: [], suggestions: [] });
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }, 180);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [q]);
 
   const go = useCallback(
