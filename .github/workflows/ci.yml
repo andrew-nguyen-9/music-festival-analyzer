@@ -59,3 +59,4 @@ jobs:
           python test_idempotency.py
           python ingest.py --self-test
           python test_aggregator.py
+          python recommend.py --self-test

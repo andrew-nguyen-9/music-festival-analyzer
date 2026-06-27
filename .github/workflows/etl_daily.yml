@@ -203,6 +203,32 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python validate_data.py --max-age-days 30
 
+  recompute-recs:
+    name: Recompute artist recommendations (v3.6)
+    runs-on: ubuntu-latest
+    # Nightly neighbour precompute (genre + co-lineup heuristic). Runs after the
+    # write jobs so it sees the freshest artists/lineups; not gated by validate-live
+    # (recommendations aren't a data-validity contract).
+    needs: [enrich-artists, ingest-festivals, ingest-lineups]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+
+      - name: Recompute artist neighbours
+        working-directory: pipeline
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python recommend.py
+
   fetch-media:
     name: Fetch Festival Media from Unsplash
     runs-on: ubuntu-latest

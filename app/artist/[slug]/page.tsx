@@ -5,6 +5,7 @@ import ArtistHero from "@/components/ArtistHero";
 import StreamingWidget from "@/components/StreamingWidget";
 import ArtistDiscography from "@/components/ArtistDiscography";
 import FestivalAppearances from "@/components/FestivalAppearances";
+import SimilarArtists from "@/components/SimilarArtists";
 import EmptyState from "@/components/EmptyState";
 import {
   getArtistBySlug,
@@ -12,6 +13,7 @@ import {
   getArtistSpotifyCache,
   withSpotifyCache,
 } from "@/lib/queries";
+import { getSimilarArtists } from "@/lib/recommendations";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +40,10 @@ export default async function ArtistPage({ params }: PageProps) {
   if (!base) notFound();
 
   // Overlay cached Spotify data (v2.2) — read from cache, never from Spotify.
-  const [cache, appearances] = await Promise.all([
+  const [cache, appearances, similar] = await Promise.all([
     getArtistSpotifyCache(base.id),
     getArtistAppearances(base.id),
+    getSimilarArtists(base.id),
   ]);
   const artist = withSpotifyCache(base, cache);
   // Thin-data artist: nothing enriched yet beyond a name. Render an honest
@@ -91,6 +94,7 @@ export default async function ArtistPage({ params }: PageProps) {
         appearances={appearances}
         artistName={artist.name}
       />
+      <SimilarArtists artists={similar} name={artist.name} />
     </FestivalThemeStyle>
   );
 }
