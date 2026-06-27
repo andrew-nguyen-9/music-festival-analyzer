@@ -54,3 +54,62 @@ export async function getSimilarArtists(
     return [];
   }
 }
+
+type NeighborRow = {
+  neighbor_id: string;
+  score: number;
+  reason: string | null;
+  neighbor:
+    | { slug: string; name: string; image_url: string | null; genres: string[] | null }[]
+    | { slug: string; name: string; image_url: string | null; genres: string[] | null }
+    | null;
+};
+
+/**
+ * "For you" recommendations from a set of seed artists (e.g. the user's local
+ * favourites): aggregate neighbours across seeds, sum scores so an artist liked
+ * by several seeds ranks higher, exclude the seeds themselves (v3.7).
+ */
+export async function getRecommendedArtists(
+  seedIds: string[],
+  limit = 12,
+): Promise<SimilarArtist[]> {
+  const sb = getSupabase();
+  if (!sb || seedIds.length === 0) return [];
+  try {
+    const { data, error } = await sb
+      .from("artist_neighbors")
+      .select(
+        "neighbor_id, score, reason, neighbor:artists!artist_neighbors_neighbor_id_fkey(slug, name, image_url, genres)",
+      )
+      .in("artist_id", seedIds)
+      .order("score", { ascending: false })
+      .limit(seedIds.length * 12);
+    if (error) throw error;
+
+    const seeds = new Set(seedIds);
+    const agg = new Map<string, SimilarArtist>();
+    for (const r of (data ?? []) as unknown as NeighborRow[]) {
+      if (seeds.has(r.neighbor_id)) continue; // don't recommend what they already like
+      const n = Array.isArray(r.neighbor) ? r.neighbor[0] : r.neighbor;
+      if (!n) continue;
+      const existing = agg.get(r.neighbor_id);
+      if (existing) {
+        existing.score += r.score;
+      } else {
+        agg.set(r.neighbor_id, {
+          slug: n.slug,
+          name: n.name,
+          image_url: n.image_url,
+          genres: n.genres ?? [],
+          score: r.score,
+          reason: r.reason,
+        });
+      }
+    }
+    return [...agg.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+  } catch (e) {
+    console.warn("[recommendations:getRecommendedArtists]", (e as Error)?.message ?? e);
+    return [];
+  }
+}
