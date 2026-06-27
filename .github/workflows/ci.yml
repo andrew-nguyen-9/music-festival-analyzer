@@ -60,3 +60,4 @@ jobs:
           python ingest.py --self-test
           python test_aggregator.py
           python recommend.py --self-test
+          python notify.py --self-test
