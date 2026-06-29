@@ -19,11 +19,15 @@ Run:
 Schedule: Weekly via GitHub Actions
 """
 
+from __future__ import annotations
+
 import os
 import re
+import csv
 import time
 import logging
 import argparse
+import unicodedata
 from datetime import date, timedelta
 from calendar import monthcalendar, THURSDAY
 from slugify import slugify
@@ -39,6 +43,30 @@ from rich.progress import track
 load_dotenv()
 console = Console()
 log = logging.getLogger(__name__)
+
+_TARGETS_CSV = os.path.join(os.path.dirname(__file__), "festival_targets.csv")
+
+
+def _normalize(s: str) -> str:
+    """Lowercase, strip accents/punctuation, collapse whitespace — for name matching."""
+    nfkd = unicodedata.normalize("NFKD", s or "")
+    ascii_only = nfkd.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", " ", ascii_only.lower()).strip()
+
+
+def load_tm_keywords() -> dict[str, str]:
+    """slug → Ticketmaster keyword, from festival_targets.csv. The CSV covers
+    ~110 festivals vs the 9-entry hardcoded map below, and is the maintained source."""
+    out: dict[str, str] = {}
+    try:
+        with open(_TARGETS_CSV, newline="", encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                kw = (row.get("tm_keyword") or "").strip()
+                if row.get("slug") and kw:
+                    out[row["slug"].strip()] = kw
+    except FileNotFoundError:
+        log.warning("festival_targets.csv not found — falling back to hardcoded TM map")
+    return out
 
 
 # ── Historical date patterns ───────────────────────────────────
@@ -330,15 +358,34 @@ def _parse_date_text(text: str) -> tuple[date, date] | None:
 
 # ── Ticketmaster date lookup ───────────────────────────────────
 
+def _tm_event_matches(event: dict, keyword: str) -> bool:
+    """True only when this TM event is really the festival, not a same-venue
+    one-off. The normalized keyword must appear as a contiguous substring of the
+    event name OR of a linked attraction's name. This rejects noise like
+    'Coachella Valley Classical Voices' for keyword 'Coachella Valley Music' while
+    accepting 'Austin City Limits Music Festival - Week 1'."""
+    kw = _normalize(keyword)
+    if not kw:
+        return False
+    if kw in _normalize(event.get("name", "")):
+        return True
+    for att in event.get("_embedded", {}).get("attractions", []):
+        if kw in _normalize(att.get("name", "")):
+            return True
+    return False
+
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
 def fetch_tm_dates(keyword: str, year: int) -> tuple[date, date] | None:
-    """Queries Ticketmaster for the festival event and extracts its date range."""
+    """Queries Ticketmaster for the festival event and extracts its date range.
+    Only events whose name/attraction matches `keyword` count (see _tm_event_matches),
+    so a keyword that merely shares a venue can't graft a wrong date on."""
     try:
         params = {
             "keyword": keyword,
             "classificationName": "Music",
             "countryCode": "US",
-            "size": 20,
+            "size": 50,
             "sort": "date,asc",
             "apikey": os.environ.get("TICKETMASTER_API_KEY", ""),
         }
@@ -358,6 +405,8 @@ def fetch_tm_dates(keyword: str, year: int) -> tuple[date, date] | None:
         dates_found: list[date] = []
 
         for event in events:
+            if not _tm_event_matches(event, keyword):
+                continue
             local_date = event.get("dates", {}).get("start", {}).get("localDate")
             end_date = event.get("dates", {}).get("end", {}).get("localDate") or local_date
             if local_date and str(year) in local_date:
@@ -377,39 +426,46 @@ def fetch_tm_dates(keyword: str, year: int) -> tuple[date, date] | None:
 
 # ── Main enrichment logic ──────────────────────────────────────
 
+# Fallback TM keywords for slugs absent from the CSV.
+_HARDCODED_TM_MAP = {
+    "lollapalooza": "Lollapalooza",
+    "coachella": "Coachella Valley Music",
+    "electric-daisy-carnival": "Electric Daisy Carnival Las Vegas",
+    "bonnaroo-music-and-arts-festival": "Bonnaroo",
+    "governors-ball": "Governors Ball",
+    "outside-lands": "Outside Lands",
+    "austin-city-limits-music-festival": "Austin City Limits Music Festival",
+    "stagecoach": "Stagecoach Festival",
+    "bottlerock-napa-valley": "BottleRock Napa",
+}
+
+
 def enrich_festival_dates(
     supabase: Client,
     festival: dict,
     year: int,
     dry_run: bool,
     estimates_only: bool,
+    tm_keywords: dict[str, str],
 ) -> None:
     slug = festival["slug"]
     name = festival["name"]
     wiki_url = festival.get("wikipedia_url", "")
     current_start = festival.get("start_date")
+    already_confirmed = bool(current_start) and not festival.get("dates_estimated", False)
 
-    # Skip if already has confirmed dates and not forcing
-    if current_start and not estimates_only:
-        console.log(f"[dim]{name}: already has dates ({current_start}) — skipping")
+    # Skip only when dates are already CONFIRMED (not merely estimated). An
+    # estimated date must still be re-checked against TM so it can be upgraded —
+    # the old `current_start` skip is why 75/76 festivals were stuck on estimates.
+    if already_confirmed and not estimates_only:
+        console.log(f"[dim]{name}: confirmed dates ({current_start}) — skipping")
         return
 
-    # 1. Try Ticketmaster for live confirmed dates
-    tm_key_map = {
-        "lollapalooza": "Lollapalooza",
-        "coachella": "Coachella Valley Music",
-        "electric-daisy-carnival": "Electric Daisy Carnival Las Vegas",
-        "bonnaroo-music-and-arts-festival": "Bonnaroo",
-        "governors-ball": "Governors Ball",
-        "outside-lands": "Outside Lands",
-        "austin-city-limits-music-festival": "Austin City Limits Music Festival",
-        "stagecoach": "Stagecoach Festival",
-        "bottlerock-napa-valley": "BottleRock Napa",
-    }
+    keyword = tm_keywords.get(slug) or _HARDCODED_TM_MAP.get(slug)
     confirmed: tuple[date, date] | None = None
 
-    if not estimates_only and slug in tm_key_map:
-        confirmed = fetch_tm_dates(tm_key_map[slug], year)
+    if not estimates_only and keyword:
+        confirmed = fetch_tm_dates(keyword, year)
         if confirmed:
             console.log(f"[green]{name}: TM confirmed {confirmed[0]} – {confirmed[1]}")
 
@@ -450,13 +506,35 @@ def enrich_festival_dates(
         log.error(f"Failed to update dates for {name}: {e}")
 
 
+def self_test() -> None:
+    """Offline asserts for the TM name-filter — the guard that rejects same-venue
+    noise. No network."""
+    # ACL: festival name appears in the event name → match.
+    acl = {"name": "Austin City Limits Music Festival - Weekend 1",
+           "_embedded": {"attractions": [{"name": "Charli xcx"}]}}
+    assert _tm_event_matches(acl, "Austin City Limits Music Festival")
+    # Same-venue one-off must NOT match the festival keyword.
+    noise = {"name": "Coachella Valley Classical Voices - LIVE", "_embedded": {"attractions": []}}
+    assert not _tm_event_matches(noise, "Coachella Valley Music")
+    # Match via a linked festival attraction even if the event name differs.
+    via_att = {"name": "Day 2 Pass", "_embedded": {"attractions": [{"name": "Outside Lands 2026"}]}}
+    assert _tm_event_matches(via_att, "Outside Lands")
+    assert _normalize("Süper-Fest!") == "super fest"
+    print("festival_dates_enricher self-test: all checks passed")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Enrich festival dates from TM, Wikipedia, and historical patterns")
+    parser.add_argument("--self-test", action="store_true", help="Run offline logic checks and exit")
     parser.add_argument("--festival", type=str, help="Festival slug to process")
     parser.add_argument("--year", type=int, default=date.today().year)
     parser.add_argument("--dry-run", action="store_true", help="No DB writes")
     parser.add_argument("--estimates-only", action="store_true", help="Only fill in missing dates with estimates")
     args = parser.parse_args()
+
+    if args.self_test:
+        self_test()
+        return
 
     supabase = get_supabase()
 
@@ -467,11 +545,14 @@ def main():
         result = supabase.table("festivals").select("*").eq("is_active", True).order("name").execute()
         festivals = result.data
 
+    tm_keywords = load_tm_keywords()
     console.log(f"[bold]Festival Date Enricher — {args.year}{' (DRY RUN)' if args.dry_run else ''}")
-    console.log(f"[cyan]Processing {len(festivals)} festivals...")
+    console.log(f"[cyan]Processing {len(festivals)} festivals "
+                f"({len(tm_keywords)} TM keywords loaded)...")
 
     for festival in track(festivals, description="Enriching dates..."):
-        enrich_festival_dates(supabase, festival, args.year, args.dry_run, args.estimates_only)
+        enrich_festival_dates(supabase, festival, args.year, args.dry_run,
+                              args.estimates_only, tm_keywords)
         time.sleep(0.3)
 
     console.log("[bold green]Done.")
