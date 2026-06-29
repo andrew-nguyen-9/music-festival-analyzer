@@ -2,6 +2,7 @@ import Link from "next/link";
 import SearchCommand from "@/components/SearchCommand";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import SettingsPanel from "@/components/SettingsPanel";
 
 /**
  * Global top nav. Transparent over heroes, sticky. The Soundcheck mark keeps
@@ -33,6 +34,7 @@ export default function Nav() {
           </Link>
           <SearchCommand />
           <ThemeToggle />
+          <SettingsPanel />
         </nav>
       </div>
     </header>

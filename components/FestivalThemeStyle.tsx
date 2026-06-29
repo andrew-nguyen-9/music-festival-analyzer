@@ -19,8 +19,10 @@ export default function FestivalThemeStyle({
 }: Props) {
   const theme = getFestivalTheme(accentColor);
   const style = themeToCssVars(theme) as CSSProperties;
+  // `festival-theme` is the hook the color-blind a11y palettes use to override
+  // this per-festival accent (see globals.css → html.cb-*).
   return (
-    <div style={style} className={className}>
+    <div style={style} className={["festival-theme", className].filter(Boolean).join(" ")}>
       {children}
     </div>
   );

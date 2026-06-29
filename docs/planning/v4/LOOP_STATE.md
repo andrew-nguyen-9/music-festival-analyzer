@@ -6,8 +6,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 |---|------|--------|--------|
 | 4 | Artist pipeline | `v4.1-artist-pipeline` | DONE (merged) |
 | 7 | Festival data quality | `v4.2-festival-data` | DONE (merged) |
-| 1 | Header light/dark | `v4.3-header-theme` | IN PROGRESS |
-| 6 | Accessibility panel | `v4.4-a11y` | todo |
+| 1 | Header light/dark | `v4.3-header-theme` | DONE (merged) |
+| 6 | Accessibility panel | `v4.4-a11y` | IN PROGRESS |
 | 2 | Homepage | `v4.5-homepage` | todo |
 | 3 | Festival page | `v4.6-festival-page` | todo |
 | 5 | Footer | `v4.7-footer` | todo |
@@ -73,6 +73,22 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   the root theme so those pages flip too. Removed the now-dead palette fields.
 - Verified live in Playwright: homepage + festival pages flip correctly in light, hero
   text stays white, dark mode unregressed.
+
+## #6 notes (accessibility panel)
+- `lib/settings.ts` central model; `SettingsPanel.tsx` gear popover in Nav. All
+  persist to localStorage, apply via `<html>` classes. Pre-paint inline script in
+  layout extended to apply them (no flash) — mirrors lib/settings.ts.
+- High contrast (`hc`): extreme tokens per theme. Reduced motion (`rm`): CSS kills
+  transitions/animations + `MotionProvider` forces Framer `reducedMotion="always"`.
+  Color vision (`cb-protanopia|deuteranopia|tritanopia`): curated Okabe-Ito accents,
+  NOT a filter — overrides FestivalThemeStyle's inline accent via the `.festival-theme`
+  hook (stylesheet !important beats element inline normal). Font size (`fs-s|m|l|xl`):
+  scales root font-size (rem-based UI).
+- Footer shortcut wired: dispatch `soundcheck:open-a11y` to open the panel (#5).
+- Verified live (Playwright): all 4 settings apply pre-paint; colorblind beats the
+  festival accent (#e69f00 on ACL); XL = 20px root; HC surface = pure black.
+- Pre-existing console noise (NOT from #6, possible later follow-ups): `/icon.svg` 500,
+  `festival_guides` table missing.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.

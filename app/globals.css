@@ -196,3 +196,78 @@ body.cursor-none * {
     animation: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Accessibility settings (v4.4) — applied via <html> classes by the
+   pre-paint script + the settings panel. localStorage only.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Font scaling — everything sizes in rem, so scaling the root scales the whole
+   UI. Verified to not break layout at XL. */
+html.fs-s { font-size: 90%; }
+html.fs-m { font-size: 100%; }
+html.fs-l { font-size: 112.5%; }
+html.fs-xl { font-size: 125%; }
+
+/* Reduced motion — a MANUAL override that complements the prefers-reduced-motion
+   media query (Framer Motion is also forced off via MotionConfig in layout). */
+html.rm *,
+html.rm *::before,
+html.rm *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.rm .grain-overlay { display: none; }
+html.rm ::view-transition-group(*),
+html.rm ::view-transition-old(*),
+html.rm ::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* High contrast — push the neutral tokens to their extremes in both themes and
+   thicken the focus ring. */
+html.hc:not([data-theme="light"]) {
+  --surface: #000000;
+  --surface-elevated: #0a0a0a;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.85);
+  --border: rgba(255, 255, 255, 0.65);
+}
+[data-theme="light"].hc {
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --text: #000000;
+  --text-muted: rgba(0, 0, 0, 0.78);
+  --border: rgba(0, 0, 0, 0.55);
+}
+html.hc :focus-visible {
+  outline-width: 3px;
+}
+
+/* Color-blind safe palettes — curated Okabe-Ito hues that stay distinguishable
+   for each deficiency. NOT a CSS filter: we swap the festival accent vars. The
+   `.festival-theme` selector overrides FestivalThemeStyle's per-festival inline
+   accent (stylesheet !important beats an element's own inline normal value). */
+html.cb-protanopia,
+html.cb-protanopia .festival-theme {
+  --accent: #0072b2 !important;
+  --accent-light: #56b4e9 !important;
+  --accent-dark: #00537f !important;
+  --accent-on-surface: #0072b2 !important;
+}
+html.cb-deuteranopia,
+html.cb-deuteranopia .festival-theme {
+  --accent: #e69f00 !important;
+  --accent-light: #f6c343 !important;
+  --accent-dark: #9c6c00 !important;
+  --accent-on-surface: #9c6c00 !important;
+}
+html.cb-tritanopia,
+html.cb-tritanopia .festival-theme {
+  --accent: #d55e00 !important;
+  --accent-light: #ff8c42 !important;
+  --accent-dark: #a04500 !important;
+  --accent-on-surface: #d55e00 !important;
+}
