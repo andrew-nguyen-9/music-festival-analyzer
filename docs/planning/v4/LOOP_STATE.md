@@ -7,8 +7,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 4 | Artist pipeline | `v4.1-artist-pipeline` | DONE (merged) |
 | 7 | Festival data quality | `v4.2-festival-data` | DONE (merged) |
 | 1 | Header light/dark | `v4.3-header-theme` | DONE (merged) |
-| 6 | Accessibility panel | `v4.4-a11y` | IN PROGRESS |
-| 2 | Homepage | `v4.5-homepage` | todo |
+| 6 | Accessibility panel | `v4.4-a11y` | DONE (merged) |
+| 2 | Homepage | `v4.5-homepage` | IN PROGRESS |
 | 3 | Festival page | `v4.6-festival-page` | todo |
 | 5 | Footer | `v4.7-footer` | todo |
 | 8 | Search | `v4.8-search` | todo |
@@ -89,6 +89,18 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   festival accent (#e69f00 on ACL); XL = 20px root; HC surface = pure black.
 - Pre-existing console noise (NOT from #6, possible later follow-ups): `/icon.svg` 500,
   `festival_guides` table missing.
+
+## #2 notes (homepage)
+- `FeaturedFestivals.tsx`: grid → horizontal scroll-snap carousel (`<ul>` + native
+  overflow-x, `.no-scrollbar`, snap-x). Reduced-motion safe (no JS animation).
+- `getFeaturedFestivals`: added `.eq("dates_estimated", false)` so only real-data
+  (TM/official-confirmed) flagships qualify — keeps Coachella's noise + Gov Ball's
+  emptiness out. Currently surfaces Lollapalooza + Outside Lands.
+- `FestivalCard.tsx`: reading order now name → location → date → genre pills (was
+  location → name → date). Also added the missing `.over-media` class so card text
+  stays white over the image scrim in BOTH themes (a #1 gap — cards are over-media).
+- Verified live (Playwright): carousel scrolls, order correct, card text white in
+  light + dark.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.
