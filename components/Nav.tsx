@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SearchCommand from "@/components/SearchCommand";
 import Logo from "@/components/Logo";
+import ThemeToggle from "@/components/ThemeToggle";
 
 /**
  * Global top nav. Transparent over heroes, sticky. The Soundcheck mark keeps
@@ -18,16 +19,20 @@ export default function Nav() {
           <Logo className="h-7 w-auto" />
         </Link>
         <nav className="flex items-center gap-6 text-label uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
-          <Link href="/" className="transition-colors hover:text-white">
+          <Link
+            href="/"
+            className="transition-colors hover:text-[color:var(--text)]"
+          >
             Festivals
           </Link>
           <Link
             href="/about"
-            className="hidden transition-colors hover:text-white sm:inline"
+            className="hidden transition-colors hover:text-[color:var(--text)] sm:inline"
           >
             About
           </Link>
           <SearchCommand />
+          <ThemeToggle />
         </nav>
       </div>
     </header>

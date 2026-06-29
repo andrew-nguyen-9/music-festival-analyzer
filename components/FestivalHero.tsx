@@ -36,7 +36,7 @@ export default function FestivalHero({ festival }: Props) {
       )}
       <div className="hero-scrim absolute inset-0" />
 
-      <div className="relative mx-auto w-full max-w-wide px-5 pb-16 pt-32 md:px-8">
+      <div className="over-media relative mx-auto w-full max-w-wide px-5 pb-16 pt-32 md:px-8">
         <p className="mb-4 text-label uppercase tracking-[0.2em] text-white/80">
           {formatLocation(festival.city, festival.state)}
           {festival.venue ? ` · ${festival.venue}` : ""}

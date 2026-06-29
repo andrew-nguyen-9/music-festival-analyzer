@@ -5,8 +5,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | # | Area | Branch | Status |
 |---|------|--------|--------|
 | 4 | Artist pipeline | `v4.1-artist-pipeline` | DONE (merged) |
-| 7 | Festival data quality | `v4.2-festival-data` | IN PROGRESS |
-| 1 | Header light/dark | `v4.3-header-theme` | todo |
+| 7 | Festival data quality | `v4.2-festival-data` | DONE (merged) |
+| 1 | Header light/dark | `v4.3-header-theme` | IN PROGRESS |
 | 6 | Accessibility panel | `v4.4-a11y` | todo |
 | 2 | Homepage | `v4.5-homepage` | todo |
 | 3 | Festival page | `v4.6-festival-page` | todo |
@@ -55,6 +55,24 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   no-real-lineup festivals is implemented in #2/#9 (they depend on this data).
 - **Manual step pending:** none required for this to work live. (Optional: apply the
   full `db/seed_sources.sql` for the aggregator/metadata sources too.)
+
+## #1 notes (header light/dark)
+- Dark stays the brand default; `ThemeToggle.tsx` (client) persists `theme` to
+  localStorage and flips `<html data-theme>`. No-flash inline script in `layout.tsx`
+  sets it before paint; `<html suppressHydrationWarning>`. Body text → `var(--text)`.
+- Full tuned light palette in `app/globals.css` under `[data-theme="light"]`. The app
+  was dark-first with hardcoded `text-white`/`bg-black`/`border-white/*` across ~46
+  files; rather than rewrite all of them, the neutral utilities are remapped to
+  semantic tokens under the theme attribute via attribute selectors + `!important`
+  (escaped-slash class selectors got mangled by PostCSS — attribute selectors avoid
+  that). Hero-over-image text keeps white via an `.over-media` wrapper on FestivalHero
+  + HeroSection.
+- **Key fix:** `lib/festival-theme.ts` `themeToCssVars` used to inject hardcoded DARK
+  `--surface/--text/--text-muted` on every FestivalThemeStyle subtree, pinning all
+  festival/artist pages to dark. Now it injects ACCENT vars only; surface/text inherit
+  the root theme so those pages flip too. Removed the now-dead palette fields.
+- Verified live in Playwright: homepage + festival pages flip correctly in light, hero
+  text stays white, dark mode unregressed.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.

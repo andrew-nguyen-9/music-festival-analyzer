@@ -43,8 +43,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="min-h-screen bg-surface font-sans text-white antialiased">
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Set the theme before first paint to avoid a flash. Dark is the brand
+            default; a stored preference (Nav toggle / a11y panel) overrides it. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();",
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-surface font-sans text-[color:var(--text)] antialiased">
         {/* Film-grain texture overlay (creative-dev T19) */}
         <div className="grain-overlay" aria-hidden />
         <WebVitals />
