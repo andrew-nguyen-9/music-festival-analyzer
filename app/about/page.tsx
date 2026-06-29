@@ -5,7 +5,7 @@ import Reveal from "@/components/Reveal";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Festival Analyzer is an autonomous, data-driven guide to US music festivals — lineups, artists, and the moments that define them.",
+    "Soundcheck is an autonomous, data-driven guide to US music festivals — lineups, artists, and the moments that define them.",
 };
 
 const SOURCES = [
@@ -43,7 +43,7 @@ export default function AboutPage() {
           Lineup intelligence for the live-music obsessed.
         </h1>
         <p className="mt-8 max-w-2xl text-body-lg leading-relaxed text-white/80">
-          Festival Analyzer turns scattered lineup announcements into a single,
+          Soundcheck turns scattered lineup announcements into a single,
           beautiful place to discover who&apos;s playing, what they sound like,
           and why it matters — one festival at a time, designed like each one
           deserves its own destination.

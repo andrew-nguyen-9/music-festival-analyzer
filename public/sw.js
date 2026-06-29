@@ -1,4 +1,4 @@
-/* Festival Analyzer service worker (v2.7.2).
+/* Soundcheck service worker (v2.7.2).
  * ponytail: hand-rolled stale-while-revalidate instead of Workbox — the policy
  * is small enough that a build-time toolchain isn't worth it. Two strategies:
  *   - navigations + same-origin GET → stale-while-revalidate (instant from cache,

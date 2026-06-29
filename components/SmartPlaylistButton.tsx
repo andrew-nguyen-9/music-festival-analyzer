@@ -69,8 +69,8 @@ export default function SmartPlaylistButton({
     ? `${festivalName} — ${dayLabel(selected)}`
     : `${festivalName} ${year} — My Picks`;
   const playlistDesc = perDay
-    ? `Your starred ${festivalName} artists playing ${dayLabel(selected)}, via Festival Analyzer.`
-    : `Your starred ${festivalName} artists, via Festival Analyzer.`;
+    ? `Your starred ${festivalName} artists playing ${dayLabel(selected)}, via Soundcheck.`
+    : `Your starred ${festivalName} artists, via Soundcheck.`;
 
   async function run() {
     setState({ kind: "working", msg: "Gathering your starred artists…" });

@@ -8,7 +8,7 @@
 
 ## The thesis
 
-Festival Analyzer should not look like Spotify, and should not look like a
+Soundcheck should not look like Spotify, and should not look like a
 vibe-coded template (centered hero, three feature cards, gradient buttons). It
 should feel like a **piece of investigative journalism** — the kind of
 scroll-driven interactive feature the NYT, The Pudding, or an F1-evolution piece

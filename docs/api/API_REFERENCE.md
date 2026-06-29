@@ -1,6 +1,6 @@
 # API Reference
 
-All external APIs used in the Festival Analyzer pipeline and frontend.
+All external APIs used in the Soundcheck pipeline and frontend.
 
 ---
 
@@ -100,7 +100,7 @@ def generate_apple_music_token() -> str:
 export async function initMusicKit(developerToken: string) {
   await MusicKit.configure({
     developerToken,
-    app: { name: 'Festival Analyzer', build: '1.0' },
+    app: { name: 'Soundcheck', build: '1.0' },
   });
   return MusicKit.getInstance();
 }

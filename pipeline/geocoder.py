@@ -30,7 +30,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 log = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-USER_AGENT = "festival-analyzer/2.3 (andrewng9999@gmail.com)"
+USER_AGENT = "soundcheck/2.3 (andrewng9999@gmail.com)"
 MIN_INTERVAL = 1.1  # seconds between requests (policy: <= 1 req/s, + margin)
 
 _last_call = 0.0

@@ -22,7 +22,7 @@ export default function MusicPlayerToggle({
       <div className="rounded-2xl border border-white/10 bg-surface-elevated p-4">
         <iframe
           title="Spotify player"
-          src={`https://open.spotify.com/embed/${spotifyEntity}/${spotifyId}?utm_source=festival-analyzer`}
+          src={`https://open.spotify.com/embed/${spotifyEntity}/${spotifyId}?utm_source=soundcheck`}
           width="100%"
           height="352"
           loading="lazy"

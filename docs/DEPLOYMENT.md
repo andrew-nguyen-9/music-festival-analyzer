@@ -1,6 +1,6 @@
 # DEPLOYMENT.md — Vercel (festival.an9.dev)
 
-How Festival Analyzer ships to production. Mechanism: **Vercel Git integration**
+How Soundcheck ships to production. Mechanism: **Vercel Git integration**
 (no GitHub deploy workflow, no `VERCEL_TOKEN`). Push to `main` deploys production;
 every PR gets an automatic preview URL.
 

@@ -1,4 +1,4 @@
-# UI Specification — Festival Analyzer
+# UI Specification — Soundcheck
 
 > ⚠️ **Superseded (v2.5).** This v1 spec is retained for historical reference only.
 > The active design system is [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) ("The Dossier"

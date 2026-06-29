@@ -5,7 +5,7 @@ import type { MetadataRoute } from "next";
 // PNG icons only if a target platform rejects SVG manifest icons.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Festival Analyzer",
+    name: "Soundcheck",
     short_name: "Festivals",
     description:
       "Artist and lineup intelligence for US music festivals — usable offline in the field.",

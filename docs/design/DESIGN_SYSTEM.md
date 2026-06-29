@@ -1,4 +1,4 @@
-# DESIGN_SYSTEM.md — Festival Analyzer (v2.5)
+# DESIGN_SYSTEM.md — Soundcheck (v2.5)
 
 > The finalized design system for v2. It expands
 > [`DESIGN_DIRECTION.md`](./DESIGN_DIRECTION.md) into tokens, rules, and a chosen

@@ -1,4 +1,4 @@
-# Festival Analyzer — Documentation
+# Soundcheck — Documentation
 
 Start here. This index maps the whole `docs/` tree.
 

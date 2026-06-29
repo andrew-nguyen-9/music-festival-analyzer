@@ -1,4 +1,4 @@
-# Database — Festival Analyzer
+# Database — Soundcheck
 
 Canonical schema: [`schema.sql`](./schema.sql). Apply incremental changes via
 timestamped, additive, reversible files in [`migrations/`](./migrations/) — never
