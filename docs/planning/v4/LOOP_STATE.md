@@ -4,8 +4,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 
 | # | Area | Branch | Status |
 |---|------|--------|--------|
-| 4 | Artist pipeline | `v4.1-artist-pipeline` | IN PROGRESS |
-| 7 | Festival data quality | `v4.2-festival-data` | todo |
+| 4 | Artist pipeline | `v4.1-artist-pipeline` | DONE (merged) |
+| 7 | Festival data quality | `v4.2-festival-data` | IN PROGRESS |
 | 1 | Header light/dark | `v4.3-header-theme` | todo |
 | 6 | Accessibility panel | `v4.4-a11y` | todo |
 | 2 | Homepage | `v4.5-homepage` | todo |
@@ -29,5 +29,33 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   Supabase SQL editor (no migration runner / DATABASE_URL available locally). Feature works
   without it; the table only persists the TTL freshness ledger.
 
+## #7 notes (festival data quality)
+- **Root cause:** `db/seed_sources.sql` was never applied to the live DB (only 3
+  manual_config rows), so the v3 source-driven lineup ingestion had zero sources →
+  daily lineup job was a no-op. And the dates enricher skipped any festival that
+  already had a date, so 75/76 stayed on estimates forever.
+- **Dates fix** (`festival_dates_enricher.py`): re-confirm estimated dates (don't
+  skip), load TM keywords from `festival_targets.csv` (~110 vs 9 hardcoded), and a
+  contiguous-substring name filter (`_tm_event_matches`) that rejects same-venue
+  noise. Result: 1→11 festivals with real TM-confirmed 2026 dates; rest stay
+  honestly estimated. Added `from __future__ import annotations` (the file's
+  `X | None` annotations crashed on Python 3.9). Offline `--self-test`.
+- **Lineups fix:** new `seed_lineup_sources.py` seeds `ticketmaster_lineup` sources
+  from the CSV for festivals that exist in the DB. Ran `ingest_lineups.py` → real
+  TM lineups: ACL +168 (Charli xcx, Skrillex, Lorde, Twenty One Pilots),
+  Outside Lands +90 (Turnstile, The Strokes), Shaky Knees +53. Festivals not on TM
+  got +0 → honest TBA (Gov Ball verified showing TBA live).
+- **NON-destructive call:** 464 `source=None` lineup rows are a MIX — Coachella's
+  20 are venue-noise (country acts), but Bonnaroo (97), Ohana, Newport Folk are
+  REAL curated lineups. A blanket delete would destroy real data, so left as-is.
+  Lolla stays `source='official'` (untouched).
+- **Known follow-up (not a blocker):** per-festival cleanup of the noisy `source=None`
+  rows (Coachella/EDC/Ultra) needs manual verification — can't be auto-cleaned
+  safely and those lineups aren't on any free API. Featured/Wallpaper exclusion of
+  no-real-lineup festivals is implemented in #2/#9 (they depend on this data).
+- **Manual step pending:** none required for this to work live. (Optional: apply the
+  full `db/seed_sources.sql` for the aggregator/metadata sources too.)
+
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.
+- Shell cwd resets to repo root after sandbox-disabled commands — always `cd pipeline` first.
