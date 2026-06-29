@@ -1,6 +1,6 @@
 # WORKFLOW.md — Versioning, Branching & Phase Lifecycle
 
-This is the operating model for all work on Festival Analyzer from v2 onward.
+This is the operating model for all work on Soundcheck from v2 onward.
 It is deliberately strict: every change flows through a numbered phase → segment
 → task hierarchy, and every segment and phase has explicit entry and exit gates.
 

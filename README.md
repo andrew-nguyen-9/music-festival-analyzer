@@ -1,4 +1,4 @@
-# Festival Analyzer
+# Soundcheck
 
 An autonomous, pipeline-driven web app surfacing artist and lineup intelligence for
 US music festivals. Starts with Lollapalooza, scales toward 200+ festivals. Editorial

@@ -1,4 +1,4 @@
-# CLAUDE.md — Festival Analyzer
+# CLAUDE.md — Soundcheck
 
 This file instructs Claude Code on how to work in this repository.
 
@@ -14,7 +14,7 @@ This file instructs Claude Code on how to work in this repository.
 
 ## Project Overview
 
-Festival Analyzer is an autonomous, pipeline-driven web app surfacing artist and
+Soundcheck is an autonomous, pipeline-driven web app surfacing artist and
 lineup intelligence for US music festivals. It starts with Lollapalooza and scales
 to 200+ festivals.
 

@@ -1,5 +1,5 @@
 -- ============================================================
--- Festival Analyzer — ONE-SHOT Supabase setup
+-- Soundcheck — ONE-SHOT Supabase setup
 -- Paste this entire file into the Supabase SQL editor and Run.
 -- = schema.sql + seed_lolla.sql (runnable lineup section).
 -- Idempotent: safe to re-run.
@@ -13,7 +13,7 @@
 -- ============================================================
 
 -- ============================================================
--- Festival Analyzer — Supabase Schema
+-- Soundcheck — Supabase Schema
 -- Run this in the Supabase SQL editor to initialize the DB
 -- ============================================================
 

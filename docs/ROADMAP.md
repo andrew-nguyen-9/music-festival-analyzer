@@ -1,4 +1,4 @@
-# ROADMAP.md — Festival Analyzer Phases
+# ROADMAP.md — Soundcheck Phases
 
 A bird's-eye view of every phase. Detail for the active phase lives in
 `docs/planning/v[p]/PLAN.md`. The operating model is `docs/WORKFLOW.md`.

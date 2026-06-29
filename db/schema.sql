@@ -1,5 +1,5 @@
 -- ============================================================
--- Festival Analyzer — Supabase Schema
+-- Soundcheck — Supabase Schema
 -- Run this in the Supabase SQL editor to initialize the DB
 -- ============================================================
 

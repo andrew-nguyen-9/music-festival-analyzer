@@ -87,9 +87,9 @@ def photo_to_record(photo: dict, festival_id: str) -> dict:
     photo_url = photo.get("links", {}).get("html", "")
 
     credit_html = (
-        f'Photo by <a href="{photographer_url}?utm_source=festival_analyzer&utm_medium=referral">'
+        f'Photo by <a href="{photographer_url}?utm_source=soundcheck&utm_medium=referral">'
         f'{photographer}</a> on '
-        f'<a href="{photo_url}?utm_source=festival_analyzer&utm_medium=referral">Unsplash</a>'
+        f'<a href="{photo_url}?utm_source=soundcheck&utm_medium=referral">Unsplash</a>'
     )
 
     urls = photo.get("urls", {})

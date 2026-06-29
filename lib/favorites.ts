@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Favorites store (v2.7.3) — starred artists, persisted in IndexedDB.
 //
-// Local-only by design: Festival Analyzer has no user-write backend (RLS is
+// Local-only by design: Soundcheck has no user-write backend (RLS is
 // public-read; all writes go through the service-role pipeline), so favorites
 // live on-device and are fully available offline — which is exactly the
 // muddy-field, no-signal use case v2.7 targets.
@@ -19,7 +19,7 @@ export interface Favorite {
   savedAt: number; // epoch ms
 }
 
-const DB_NAME = "festival-analyzer";
+const DB_NAME = "soundcheck";
 const DB_VERSION = 1;
 const STORE = "favorites";
 

@@ -25,12 +25,12 @@ import WebVitals from "@/components/WebVitals";
 
 export const metadata: Metadata = {
   title: {
-    default: "Festival Analyzer — US Music Festival Lineup Intelligence",
-    template: "%s · Festival Analyzer",
+    default: "Soundcheck — US Music Festival Lineup Intelligence",
+    template: "%s · Soundcheck",
   },
   description:
     "Artist and lineup intelligence for US music festivals. Search by artist, genre, city, or vibe — from Lollapalooza to 200+ festivals.",
-  metadataBase: new URL("https://festival-analyzer.vercel.app"),
+  metadataBase: new URL("https://soundcheck.an9.dev"),
 };
 
 export const viewport = {
@@ -55,7 +55,7 @@ export default function RootLayout({
         <main>{children}</main>
         <footer className="border-t border-white/10 px-5 py-10 text-label text-[color:var(--text-muted)] md:px-8">
           <div className="mx-auto max-w-wide">
-            Festival Analyzer · Data from Spotify, Apple Music &amp; Unsplash ·
+            Soundcheck · Data from Spotify, Apple Music &amp; Unsplash ·
             Built with Next.js + Supabase
           </div>
         </footer>
