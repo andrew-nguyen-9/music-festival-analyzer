@@ -29,3 +29,7 @@ next-env.d.ts
 
 # Serena MCP
 .serena/
+pipeline/.venv/
+
+# Claude Code session-local (ralph loop state, etc.)
+.claude/
