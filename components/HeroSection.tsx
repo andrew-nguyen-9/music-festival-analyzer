@@ -37,7 +37,7 @@ export default function HeroSection() {
       />
 
       {/* Content constrained to max-w-wide, matching all other page sections */}
-      <div className="mx-auto w-full max-w-wide px-5 md:px-8">
+      <div className="over-media mx-auto w-full max-w-wide px-5 md:px-8">
         <p className="mb-5 text-label uppercase tracking-[0.22em] text-white/80">
           US Music Festivals · Lineup Intelligence
         </p>

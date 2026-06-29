@@ -8,10 +8,6 @@ export interface FestivalTheme {
   accent: string;
   accentLight: string;
   accentDark: string;
-  surface: string;
-  surfaceElevated: string;
-  text: string;
-  textMuted: string;
 }
 
 const DEFAULT_ACCENT = "#FF4500"; // Lollapalooza orange-red
@@ -75,23 +71,20 @@ export function getFestivalTheme(accentHex?: string | null): FestivalTheme {
     accent,
     accentLight: lighten(accent, 0.3),
     accentDark: darken(accent, 0.2),
-    surface: "#0A0A0A",
-    surfaceElevated: "#141414",
-    text: "#FFFFFF",
-    textMuted: "rgba(255,255,255,0.55)",
   };
 }
 
-/** CSS custom properties for inline `style` on a theming wrapper. */
+/** CSS custom properties for inline `style` on a theming wrapper.
+ * Only the ACCENT vars are festival-specific. surface/text/text-muted are
+ * intentionally NOT injected here — they must inherit from the root theme
+ * (`:root` / `[data-theme="light"]`) so festival + artist pages flip with the
+ * light/dark toggle (v4.1). Injecting dark surface/text here used to pin those
+ * subtrees to dark and broke the light theme everywhere a festival accent applied. */
 export function themeToCssVars(theme: FestivalTheme): Record<string, string> {
   return {
     "--accent": theme.accent,
     "--accent-light": theme.accentLight,
     "--accent-dark": theme.accentDark,
-    "--surface": theme.surface,
-    "--surface-elevated": theme.surfaceElevated,
-    "--text": theme.text,
-    "--text-muted": theme.textMuted,
   };
 }
 
