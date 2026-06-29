@@ -85,6 +85,10 @@ export async function getFeaturedFestivals(limit = 6): Promise<Festival[]> {
       .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .contains("tags", ["flagship"])
+      // Real-data only (v4.5, depends on v4.2): a confirmed (non-estimated) date
+      // means the festival was verified from Ticketmaster/official — keeps
+      // placeholder/TBA festivals out of the featured carousel.
+      .eq("dates_estimated", false)
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
