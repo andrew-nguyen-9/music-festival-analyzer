@@ -19,6 +19,7 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 import CustomCursor from "@/components/CustomCursor";
+import Footer from "@/components/Footer";
 import MotionProvider from "@/components/MotionProvider";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import OfflineIndicator from "@/components/OfflineIndicator";
@@ -71,12 +72,7 @@ export default function RootLayout({
           <Nav />
           <main>{children}</main>
         </MotionProvider>
-        <footer className="border-t border-white/10 px-5 py-10 text-label text-[color:var(--text-muted)] md:px-8">
-          <div className="mx-auto max-w-wide">
-            Soundcheck · Data from Spotify, Apple Music &amp; Unsplash ·
-            Built with Next.js + Supabase
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );
