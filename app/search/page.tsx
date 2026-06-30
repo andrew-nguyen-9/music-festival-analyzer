@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { searchAll, searchSuggest } from "@/lib/queries";
+import { searchEnhanced, searchSuggest } from "@/lib/queries";
 
 // Server-rendered search results — deep-linkable (/search?q=…) and a no-JS
 // fallback for the ⌘K palette (v3.3). force-dynamic: results follow live data.
@@ -11,7 +11,7 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const q = (await searchParams).q?.trim() ?? "";
-  const results = q.length >= 2 ? await searchAll(q) : [];
+  const results = q.length >= 2 ? await searchEnhanced(q) : [];
   const suggestions = q.length >= 2 && results.length === 0 ? await searchSuggest(q) : [];
 
   return (
