@@ -344,6 +344,226 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
   }
 }
 
+// ── v4.6 best-fit search: geo + genre layered on the trigram RPC ─────
+// We extend search in the route/query layer (PostgREST) rather than the SQL RPC
+// because this environment can't apply migrations; the trigram RPC still does
+// typo-tolerant name matching, and these add geo + genre intent on top.
+// ponytail: no bloom filters — Postgres trigram + GIN indexes already give fuzzy
+// matching at this catalog size (~80 festivals / ~700 artists); a bloom filter
+// would only help to *avoid* lookups we already do cheaply. Add one only if the
+// catalog grows past what trigram scans handle well.
+
+const GENRE_SYNONYMS: Record<string, string[]> = {
+  edm: ["electronic", "house", "techno", "dance", "dubstep", "bass"],
+  electronic: ["edm", "house", "techno", "dance"],
+  "hip hop": ["rap", "hip-hop", "trap"],
+  "hip-hop": ["hip hop", "rap", "trap"],
+  rap: ["hip hop", "hip-hop", "trap"],
+  indie: ["indie rock", "indie pop", "alternative"],
+  alt: ["alternative", "alternative rock", "indie"],
+  rock: ["alternative rock", "indie rock", "punk", "metal"],
+  pop: ["dance-pop", "electropop", "pop rock"],
+  country: ["americana", "folk"],
+  rnb: ["r&b", "soul", "contemporary r&b"],
+  "r&b": ["rnb", "soul", "contemporary r&b"],
+};
+
+const US_STATES: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+  hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA",
+  kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD",
+  massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
+  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV", "new hampshire": "NH",
+  "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC",
+  "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA",
+  "rhode island": "RI", "south carolina": "SC", "south dakota": "SD", tennessee: "TN",
+  texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
+  "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
+};
+
+const NEARBY_MILES = 150;
+
+function haversineMiles(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const R = 3958.8; // earth radius, miles
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Festivals matching a place (city/state), plus nearby festivals by distance. */
+async function searchByLocation(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const term = q.toLowerCase();
+  const stateAbbr = US_STATES[term] ?? (q.length === 2 ? q.toUpperCase() : null);
+  try {
+    const { data } = await sb
+      .from("festivals")
+      .select("id, slug, name, city, state, latitude, longitude")
+      .eq("is_active", true);
+    const all = (data ?? []) as {
+      id: string; slug: string; name: string; city: string | null;
+      state: string | null; latitude: number | null; longitude: number | null;
+    }[];
+
+    const exact = all.filter(
+      (f) =>
+        (f.city && f.city.toLowerCase().includes(term)) ||
+        (f.state && (f.state.toLowerCase() === term || f.state === stateAbbr)),
+    );
+    if (exact.length === 0) return [];
+
+    const out: SearchResult[] = exact.map((f) => ({
+      type: "festival" as const,
+      id: f.id,
+      slug: f.slug,
+      name: f.name,
+      description: [f.city, f.state].filter(Boolean).join(", ") || null,
+      score: 0.95,
+    }));
+
+    // Nearby: other geocoded festivals within NEARBY_MILES of any exact match.
+    const centers = exact
+      .filter((f) => f.latitude != null && f.longitude != null)
+      .map((f) => ({ lat: f.latitude!, lng: f.longitude! }));
+    const exactIds = new Set(exact.map((f) => f.id));
+    if (centers.length > 0) {
+      const nearby: { f: (typeof all)[number]; mi: number }[] = [];
+      for (const f of all) {
+        if (exactIds.has(f.id) || f.latitude == null || f.longitude == null) continue;
+        const mi = Math.min(
+          ...centers.map((c) => haversineMiles(c, { lat: f.latitude!, lng: f.longitude! })),
+        );
+        if (mi <= NEARBY_MILES) nearby.push({ f, mi });
+      }
+      nearby.sort((a, b) => a.mi - b.mi);
+      for (const { f, mi } of nearby.slice(0, 8)) {
+        out.push({
+          type: "festival",
+          id: f.id,
+          slug: f.slug,
+          name: f.name,
+          description: `${Math.round(mi)} mi away · ${[f.city, f.state].filter(Boolean).join(", ")}`,
+          score: 0.7 - mi / 1000,
+        });
+      }
+    }
+    return out;
+  } catch (e) {
+    warn("searchByLocation", e);
+    return [];
+  }
+}
+
+/** Artists + festivals matching a genre (with synonym expansion). */
+async function searchByGenre(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const base = q.toLowerCase();
+  const terms = Array.from(new Set([base, ...(GENRE_SYNONYMS[base] ?? [])]));
+  try {
+    const [artistsRes, festsRes] = await Promise.all([
+      sb.from("artists").select("id, slug, name, genres, spotify_popularity")
+        .overlaps("genres", terms)
+        .order("spotify_popularity", { ascending: false, nullsFirst: false })
+        .limit(10),
+      sb.from("festivals").select("id, slug, name, tags")
+        .overlaps("tags", terms)
+        .eq("is_active", true)
+        .limit(8),
+    ]);
+    const out: SearchResult[] = [];
+    for (const a of (artistsRes.data ?? []) as { id: string; slug: string; name: string; genres: string[] | null }[]) {
+      out.push({
+        type: "artist", id: a.id, slug: a.slug, name: a.name,
+        description: (a.genres ?? []).slice(0, 3).join(" · ") || null,
+        score: 0.85,
+      });
+    }
+    for (const f of (festsRes.data ?? []) as { id: string; slug: string; name: string; tags: string[] | null }[]) {
+      out.push({
+        type: "festival", id: f.id, slug: f.slug, name: f.name,
+        description: `${q} lineup · ${(f.tags ?? []).slice(0, 3).join(", ")}`,
+        score: 0.8,
+      });
+    }
+    return out;
+  } catch (e) {
+    warn("searchByGenre", e);
+    return [];
+  }
+}
+
+/** Substring (ILIKE) name match — catches longer names the trigram RPC misses,
+ * e.g. "bonnaroo" → "Bonnaroo Music and Arts Festival". */
+async function searchByName(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  try {
+    const [fests, artists] = await Promise.all([
+      sb.from("festivals").select("id, slug, name, city, state").ilike("name", like).eq("is_active", true).limit(8),
+      sb.from("artists").select("id, slug, name, genres").ilike("name", like).limit(8),
+    ]);
+    const out: SearchResult[] = [];
+    for (const f of (fests.data ?? []) as { id: string; slug: string; name: string; city: string | null; state: string | null }[]) {
+      out.push({
+        type: "festival", id: f.id, slug: f.slug, name: f.name,
+        description: [f.city, f.state].filter(Boolean).join(", ") || null,
+        // Prefix matches rank above mid-name matches.
+        score: f.name.toLowerCase().startsWith(q.toLowerCase()) ? 0.97 : 0.78,
+      });
+    }
+    for (const a of (artists.data ?? []) as { id: string; slug: string; name: string; genres: string[] | null }[]) {
+      out.push({
+        type: "artist", id: a.id, slug: a.slug, name: a.name,
+        description: (a.genres ?? []).slice(0, 3).join(" · ") || null,
+        score: a.name.toLowerCase().startsWith(q.toLowerCase()) ? 0.95 : 0.76,
+      });
+    }
+    return out;
+  } catch (e) {
+    warn("searchByName", e);
+    return [];
+  }
+}
+
+/**
+ * Best-fit unified search (v4.6): trigram name match (RPC) + substring names +
+ * location radius + genre intent, merged and de-duped by (type,id), highest
+ * score wins.
+ */
+export async function searchEnhanced(query: string): Promise<SearchResult[]> {
+  const q = query.trim();
+  if (q.length === 0) return [];
+  const [base, byName, location, genre] = await Promise.all([
+    searchAll(q),
+    searchByName(q),
+    searchByLocation(q),
+    searchByGenre(q),
+  ]);
+  const merged = new Map<string, SearchResult>();
+  for (const r of [base, byName, location, genre].flat()) {
+    const key = `${r.type}:${r.id}`;
+    const prev = merged.get(key);
+    if (!prev || r.score > prev.score) {
+      // Keep the most informative description when scores tie/replace.
+      merged.set(key, { ...r, description: r.description ?? prev?.description ?? null });
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.score - a.score).slice(0, 30);
+}
+
 /** Recent ingestion runs for the observability dashboard (v3.11). Public-read. */
 export async function getRecentIngestionRuns(
   limit = 80,

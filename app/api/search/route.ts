@@ -2,7 +2,7 @@
 // Server route so the anon Supabase client + RPC stay off the client bundle.
 // Returns ranked results; when empty, includes "did you mean?" suggestions.
 import { NextResponse } from "next/server";
-import { searchAll, searchSuggest } from "@/lib/queries";
+import { searchEnhanced, searchSuggest } from "@/lib/queries";
 
 export const runtime = "nodejs";
 export const revalidate = 0; // always fresh; the query itself is cheap + indexed
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   if (q.length < 2) {
     return NextResponse.json({ query: q, results: [], suggestions: [] });
   }
-  const results = await searchAll(q);
+  const results = await searchEnhanced(q);
   const suggestions = results.length === 0 ? await searchSuggest(q) : [];
   return NextResponse.json({ query: q, results, suggestions });
 }

@@ -10,8 +10,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 6 | Accessibility panel | `v4.4-a11y` | DONE (merged) |
 | 2 | Homepage | `v4.5-homepage` | DONE (merged) |
 | 3 | Festival page | `v4.6-festival-page` | DONE (merged) |
-| 5 | Footer | `v4.7-footer` | IN PROGRESS |
-| 8 | Search | `v4.8-search` | todo |
+| 5 | Footer | `v4.7-footer` | DONE (merged) |
+| 8 | Search | `v4.8-search` | IN PROGRESS |
 | 9 | Wallpaper rebuild | `v4.9-wallpaper` | todo |
 
 ## #4 notes (diagnosis + fix)
@@ -118,6 +118,23 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   getFestivalComparison query, threaded page→tabs→analysis as a prop).
 - Verified live on Lollapalooza: all four sections render with real data; removed
   sections gone; no new console errors.
+
+## #8 notes (search)
+- Extended search in the query/route layer (PostgREST), NOT a new SQL RPC, because
+  this env can't apply migrations. `searchEnhanced` merges four sources, de-duped by
+  (type,id), highest score wins:
+  1. trigram `search_all` RPC (existing typo tolerance);
+  2. ILIKE substring names (fixes a real gap: "bonnaroo" / "gov ball" didn't match
+     the longer official names via trigram);
+  3. location — city/state exact match + radius "nearby" via haversine over festival
+     lat/lng (Chicago → Chicago fests + "Electric Forest 129 mi away"); state-name →
+     abbrev map;
+  4. genre — artists by genres[] + festivals by tags[], with a synonym map
+     (edm→electronic/house…, hip hop→rap/trap…).
+- Wired into app/api/search/route.ts + app/search/page.tsx.
+- ponytail: skipped bloom filters — Postgres trigram + GIN already give fuzzy
+  matching at this catalog size; a bloom filter only avoids lookups we do cheaply.
+- Verified live: location, radius, genre, synonyms, substring all return correct results.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.
