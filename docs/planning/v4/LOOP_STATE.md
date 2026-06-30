@@ -12,7 +12,11 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 3 | Festival page | `v4.6-festival-page` | DONE (merged) |
 | 5 | Footer | `v4.7-footer` | DONE (merged) |
 | 8 | Search | `v4.8-search` | DONE (merged) |
-| 9 | Wallpaper rebuild | `v4.9-wallpaper` | IN PROGRESS |
+| 9 | Wallpaper rebuild | `v4.9-wallpaper` | DONE (merged) |
+
+**All 9 areas complete + merged to `v4`.** Phase NOT closed — awaiting owner review before
+the phase-close gates (full QA, ultra code-review, merge v4 → main). Do not PR to main
+until approved.
 
 ## #4 notes (diagnosis + fix)
 - **Root cause:** Spotify 2026 API returns null popularity/followers/genres for our
