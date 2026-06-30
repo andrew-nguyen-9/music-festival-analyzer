@@ -4,9 +4,6 @@ import FestivalThemeStyle from "@/components/FestivalThemeStyle";
 import FestivalHero from "@/components/FestivalHero";
 import FestivalPassedBanner from "@/components/FestivalPassedBanner";
 import FestivalPageTabs from "@/components/FestivalPageTabs";
-import MediaGallery from "@/components/MediaGallery";
-import SocialFeed from "@/components/SocialFeed";
-import FunFactsWidget from "@/components/FunFactsWidget";
 import RelatedFestivals from "@/components/RelatedFestivals";
 import FestivalGuide from "@/components/FestivalGuide";
 import SmartPlaylistButton from "@/components/SmartPlaylistButton";
@@ -40,7 +37,7 @@ export default async function FestivalPage({ params }: PageProps) {
   const data = await getFestivalPageData(slug);
   if (!data) notFound();
 
-  const { festival, year, lineup, media, social, funFacts, related } = data;
+  const { festival, year, lineup, related, comparison } = data;
   const guide = await getFestivalGuide(festival.id);
 
   const hasSchedule = lineup.some((e) => e.day != null);
@@ -75,7 +72,12 @@ export default async function FestivalPage({ params }: PageProps) {
           </section>
         )}
 
-        <FestivalPageTabs festival={festival} lineup={lineup} state={state} />
+        <FestivalPageTabs
+          festival={festival}
+          lineup={lineup}
+          state={state}
+          comparison={comparison}
+        />
 
         {!isPassed && lineup.length > 0 && (
           <section className="mx-auto flex max-w-wide flex-wrap items-center gap-4 px-5 py-4 md:px-8">
@@ -96,9 +98,6 @@ export default async function FestivalPage({ params }: PageProps) {
         )}
 
         <FestivalGuide guide={guide} />
-        <MediaGallery media={media} />
-        <SocialFeed posts={social} />
-        <FunFactsWidget facts={funFacts} festivalName={festival.name} year={year} />
         <RelatedFestivals festivals={related} />
       </div>
     </FestivalThemeStyle>
