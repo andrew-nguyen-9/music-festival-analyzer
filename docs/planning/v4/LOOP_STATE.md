@@ -11,8 +11,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 2 | Homepage | `v4.5-homepage` | DONE (merged) |
 | 3 | Festival page | `v4.6-festival-page` | DONE (merged) |
 | 5 | Footer | `v4.7-footer` | DONE (merged) |
-| 8 | Search | `v4.8-search` | IN PROGRESS |
-| 9 | Wallpaper rebuild | `v4.9-wallpaper` | todo |
+| 8 | Search | `v4.8-search` | DONE (merged) |
+| 9 | Wallpaper rebuild | `v4.9-wallpaper` | IN PROGRESS |
 
 ## #4 notes (diagnosis + fix)
 - **Root cause:** Spotify 2026 API returns null popularity/followers/genres for our
@@ -135,6 +135,29 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 - ponytail: skipped bloom filters — Postgres trigram + GIN already give fuzzy
   matching at this catalog size; a bloom filter only avoids lookups we do cheaply.
 - Verified live: location, radius, genre, synonyms, substring all return correct results.
+
+## #9 notes (wallpaper rebuild)
+- Full rewrite of `WallpaperStudio.tsx` from a day-schedule canvas to a curated
+  artist-list wallpaper. Kept raw canvas (no html-to-image dep) for a true 1170×2532
+  PNG export.
+- Starts EMPTY (`useState(new Set())`); "+ Add all headliners" one-tap (is_headliner
+  flag, falls back to top-popularity); Clear; 40-artist cap (checkboxes disable at max).
+- Strict 3-zone geometry: top third = clock/widget negative space (+ accent glow);
+  center = "MY LINEUP / {FESTIVAL}" header + vertically-centered, auto-scaling artist
+  list (font shrinks with count + to fit width); bottom = Soundcheck wordmark
+  (brand-gradient) + soundcheck.an9.dev, bottom-center in the safe zone. Killed the
+  stale "festivalanalyzer" string.
+- Filters: stage (if any) + genre dropdowns; sort popularity / alphabetical.
+- Colors: Dark/Light/Accent/Mono presets + custom BG + Text color pickers.
+- Desktop: controls left, sticky phone preview right (fits one screen). Mobile:
+  full preview + pull-up bottom-sheet drawer for controls.
+- **Bug found + fixed:** desktop + mobile previews initially shared one ref, so React
+  only attached it to the hidden mobile canvas and the visible one stayed blank
+  (transparent pixels). Split into two refs, draw to both.
+- Dropped the now-unused `stages` prop + getStages from the wallpaper page (stages are
+  derived from lineup entries).
+- Verified live (Playwright): empty start, headliners populate, 3 zones render,
+  branding present, Light palette swaps bg. Gate green.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.
