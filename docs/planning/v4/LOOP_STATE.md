@@ -9,8 +9,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 1 | Header light/dark | `v4.3-header-theme` | DONE (merged) |
 | 6 | Accessibility panel | `v4.4-a11y` | DONE (merged) |
 | 2 | Homepage | `v4.5-homepage` | DONE (merged) |
-| 3 | Festival page | `v4.6-festival-page` | IN PROGRESS |
-| 5 | Footer | `v4.7-footer` | todo |
+| 3 | Festival page | `v4.6-festival-page` | DONE (merged) |
+| 5 | Footer | `v4.7-footer` | IN PROGRESS |
 | 8 | Search | `v4.8-search` | todo |
 | 9 | Wallpaper rebuild | `v4.9-wallpaper` | todo |
 
