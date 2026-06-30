@@ -486,45 +486,56 @@ function paint(ctx: CanvasRenderingContext2D, a: PaintArgs) {
     y += 30;
   }
 
-  // Divider under the header.
+  // Column geometry (shared by divider + rows) — a borderless table.
+  const marginX = W * 0.06;
+  const xArtist = marginX;
+  const xTime = W * 0.56;
+  const xStage = W * 0.74;
+  const rightX = W - marginX;
+
+  // Divider under the header, aligned to the table margins.
   y += 44;
   ctx.strokeStyle = hexA(fg, 0.18);
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(W * 0.22, y);
-  ctx.lineTo(W * 0.78, y);
+  ctx.moveTo(marginX, y);
+  ctx.lineTo(rightX, y);
   ctx.stroke();
 
-  // ── Schedule list: time + artist + stage, latest → earliest, auto-scaled ──
-  const listTop = y + 60;
+  // ── Schedule: one borderless table row per set, latest → earliest. Columns
+  //    artist | time | stage are left-aligned so larger text fills the width. ──
+  const listTop = y + 56;
   const listBottom = BOTTOM_ZONE + H * 0.13; // into the upper bottom-zone, clear of the home bar
   const n = sets.length;
   if (n > 0) {
     const band = listBottom - listTop;
     const lh = Math.min(150, band / n);
-    let nameSize = Math.round(lh * 0.36);
-    const subSize = Math.round(lh * 0.2);
-    // Shrink the name to the widest entry so nothing clips.
-    const fit = () => {
-      ctx.font = `600 ${nameSize}px Inter, system-ui, sans-serif`;
-      return sets.every((s) => ctx.measureText(s.name).width <= W * 0.84);
-    };
-    while (nameSize > 18 && !fit()) nameSize -= 2;
+    const rowFont = Math.min(56, Math.round(lh * 0.5));
+    const artistMaxW = xTime - 28 - xArtist;
+    const stageMaxW = rightX - xStage;
 
     const blockH = lh * n;
     let ly = listTop + (band - blockH) / 2 + lh / 2;
     ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
     for (const s of sets) {
+      ctx.font = `600 ${rowFont}px Inter, system-ui, sans-serif`;
       ctx.fillStyle = fg;
-      ctx.font = `600 ${nameSize}px Inter, system-ui, sans-serif`;
-      ctx.fillText(truncate(ctx, s.name, W * 0.86), W / 2, ly - subSize * 0.7);
+      ctx.fillText(truncate(ctx, s.name, artistMaxW), xArtist, ly);
 
-      ctx.font = `500 ${subSize}px Inter, system-ui, sans-serif`;
-      const sub = [fmtSetTime(s.start), s.stage].filter(Boolean).join("  ·  ");
-      ctx.fillStyle = hexA(accent, 0.95);
-      ctx.fillText(sub, W / 2, ly + nameSize * 0.55);
+      ctx.fillStyle = accent;
+      ctx.fillText(fmtSetTime(s.start), xTime, ly);
+
+      if (s.stage) {
+        // Drop the redundant "Stage" suffix so the column stays compact.
+        const stage = s.stage.replace(/\s+stage$/i, "");
+        ctx.font = `500 ${rowFont}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = hexA(fg, 0.55);
+        ctx.fillText(truncate(ctx, stage, stageMaxW), xStage, ly);
+      }
       ly += lh;
     }
+    ctx.textAlign = "center"; // restore for the branding below
   } else {
     ctx.fillStyle = hexA(fg, 0.5);
     ctx.font = "500 40px Inter, system-ui, sans-serif";
