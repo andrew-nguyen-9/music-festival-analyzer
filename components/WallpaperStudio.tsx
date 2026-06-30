@@ -208,7 +208,8 @@ export default function WallpaperStudio({ festival, lineup }: Props) {
   );
 
   return (
-    <section className="mx-auto max-w-wide px-5 py-10 md:px-8">
+    <section className="mx-auto max-w-wide px-5 pb-10 pt-28 md:px-8 md:pt-32">
+      {/* pt-28/32 clears the fixed, transparent site Nav (matches other pages). */}
       {/* Desktop: controls left, phone preview pinned right. */}
       <div className="hidden gap-10 md:grid md:grid-cols-[1fr,minmax(300px,340px)]">
         <div className="max-h-[82vh] overflow-y-auto pr-2">{controls}</div>
@@ -465,9 +466,8 @@ function paint(ctx: CanvasRenderingContext2D, a: PaintArgs) {
   // ── Zone boundaries ──
   const BOTTOM_ZONE = (H * 2) / 3; // OS UI overlays below this — kept clear
 
-  // Header shifted DOWN to breathe — starts well below the clock zone, with
-  // generous spacing between its three lines (v4.10).
-  let y = H * 0.42;
+  // Header sits at the top of the center zone, just clear of the clock zone.
+  let y = H / 3 + 70;
   ctx.fillStyle = accent;
   ctx.font = "600 38px 'Space Grotesk', system-ui, sans-serif";
   ctx.fillText("MY DAY AT", W / 2, y);
