@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import FestivalThemeStyle from "@/components/FestivalThemeStyle";
 import WallpaperStudio from "@/components/WallpaperStudio";
-import { getFestivalBySlug, getLineup, getStages } from "@/lib/queries";
+import { getFestivalBySlug, getLineup } from "@/lib/queries";
 import { festivalYear } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +26,11 @@ export default async function WallpaperPage({ params }: PageProps) {
   if (!festival) notFound();
 
   const year = festivalYear(festival.start_date);
-  const [lineup, stages] = await Promise.all([
-    getLineup(festival.id, year),
-    getStages(festival.id),
-  ]);
+  const lineup = await getLineup(festival.id, year);
 
   return (
     <FestivalThemeStyle accentColor={festival.accent_color}>
-      <WallpaperStudio festival={festival} lineup={lineup} stages={stages} />
+      <WallpaperStudio festival={festival} lineup={lineup} />
     </FestivalThemeStyle>
   );
 }
