@@ -16,12 +16,8 @@ import type {
   Festival,
   FestivalGuide,
   IngestionRunSummary,
-  FunFact,
-  FunFactsRow,
   LineupEntry,
-  Media,
   SearchResult,
-  SocialPost,
   Stage,
   Suggestion,
 } from "./types";
@@ -200,75 +196,6 @@ export async function getStages(festivalId: string): Promise<Stage[]> {
     return (data as unknown as Stage[]) ?? [];
   } catch (e) {
     warn("getStages", e);
-    return [];
-  }
-}
-
-// ── Media ──────────────────────────────────────────────────────
-
-export async function getMedia(
-  festivalId: string,
-  limit = 18,
-): Promise<Media[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("media")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .limit(limit);
-    if (error) throw error;
-    return (data as Media[]) ?? [];
-  } catch (e) {
-    warn("getMedia", e);
-    return [];
-  }
-}
-
-// ── Social posts ───────────────────────────────────────────────
-
-export async function getSocialPosts(
-  festivalId: string,
-  limit = 12,
-): Promise<SocialPost[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("social_posts")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .order("posted_at", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return (data as SocialPost[]) ?? [];
-  } catch (e) {
-    warn("getSocialPosts", e);
-    return [];
-  }
-}
-
-// ── Fun facts ──────────────────────────────────────────────────
-
-export async function getFunFacts(
-  festivalId: string,
-  year: number,
-): Promise<FunFact[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("fun_facts")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .eq("year", year)
-      .maybeSingle();
-    if (error) throw error;
-    const row = data as FunFactsRow | null;
-    return Array.isArray(row?.facts) ? row!.facts : [];
-  } catch (e) {
-    warn("getFunFacts", e);
     return [];
   }
 }
@@ -476,14 +403,101 @@ export async function searchSuggest(query: string): Promise<Suggestion[]> {
 
 // ── Convenience: festival page bundle ──────────────────────────
 
+export interface FestivalComparison {
+  self: { artists: number; avgPop: number | null };
+  pastYears: { year: number; artists: number; avgPop: number | null }[];
+  peers: { slug: string; name: string; artists: number; avgPop: number | null }[];
+}
+
+interface PopRow {
+  festival_id: string;
+  year: number | null;
+  artist_id: string;
+  artists: { spotify_popularity: number | null } | null;
+}
+
+/** Aggregate distinct-artist count + avg Spotify popularity per (festival, year). */
+function aggregate(rows: PopRow[]): Map<string, { artists: Set<string>; pops: number[] }> {
+  const m = new Map<string, { artists: Set<string>; pops: number[] }>();
+  for (const r of rows) {
+    const key = `${r.festival_id}__${r.year ?? "?"}`;
+    if (!m.has(key)) m.set(key, { artists: new Set(), pops: [] });
+    const bucket = m.get(key)!;
+    bucket.artists.add(r.artist_id);
+    const pop = r.artists?.spotify_popularity;
+    if (pop != null) bucket.pops.push(pop);
+  }
+  return m;
+}
+
+const avg = (xs: number[]) =>
+  xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : null;
+
+/**
+ * Comparison data for the lineup-analysis "Comparisons" panel (v4.6): this
+ * festival vs its own past years, and vs similar (peer) festivals' current year.
+ * Peers are the already-fetched related festivals, so this is two extra queries.
+ */
+export async function getFestivalComparison(
+  festival: Festival,
+  year: number,
+  peers: Festival[],
+): Promise<FestivalComparison | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const POP = "festival_id, year, artist_id, artists(spotify_popularity)";
+    const peerIds = peers.map((p) => p.id);
+    const [ownRes, peerRes] = await Promise.all([
+      sb.from("lineups").select(POP).eq("festival_id", festival.id),
+      peerIds.length
+        ? sb.from("lineups").select(POP).in("festival_id", peerIds).eq("year", year)
+        : Promise.resolve({ data: [] as PopRow[], error: null }),
+    ]);
+    if (ownRes.error) throw ownRes.error;
+
+    const own = aggregate((ownRes.data as unknown as PopRow[]) ?? []);
+    const self = own.get(`${festival.id}__${year}`);
+    const pastYears = [...own.entries()]
+      .map(([k, v]) => ({
+        year: Number(k.split("__")[1]),
+        artists: v.artists.size,
+        avgPop: avg(v.pops),
+      }))
+      .filter((p) => p.year !== year && !Number.isNaN(p.year))
+      .sort((a, b) => b.year - a.year)
+      .slice(0, 4);
+
+    const peerAgg = aggregate((peerRes.data as unknown as PopRow[]) ?? []);
+    const byId = new Map(peers.map((p) => [p.id, p]));
+    const peerStats = [...peerAgg.entries()]
+      .map(([k, v]) => {
+        const p = byId.get(k.split("__")[0]);
+        return p
+          ? { slug: p.slug, name: p.name, artists: v.artists.size, avgPop: avg(v.pops) }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+      .sort((a, b) => b.artists - a.artists)
+      .slice(0, 4);
+
+    return {
+      self: { artists: self?.artists.size ?? 0, avgPop: avg(self?.pops ?? []) },
+      pastYears,
+      peers: peerStats,
+    };
+  } catch (e) {
+    warn("getFestivalComparison", e);
+    return null;
+  }
+}
+
 export interface FestivalPageData {
   festival: Festival;
   year: number;
   lineup: LineupEntry[];
-  media: Media[];
-  social: SocialPost[];
-  funFacts: FunFact[];
   related: Festival[];
+  comparison: FestivalComparison | null;
 }
 
 export async function getFestivalPageData(
@@ -492,12 +506,10 @@ export async function getFestivalPageData(
   const festival = await getFestivalBySlug(slug);
   if (!festival) return null;
   const year = festivalYear(festival.start_date);
-  const [lineup, media, social, funFacts, related] = await Promise.all([
+  const [lineup, related] = await Promise.all([
     getLineup(festival.id, year),
-    getMedia(festival.id),
-    getSocialPosts(festival.id),
-    getFunFacts(festival.id, year),
     getRelatedFestivals(festival),
   ]);
-  return { festival, year, lineup, media, social, funFacts, related };
+  const comparison = await getFestivalComparison(festival, year, related);
+  return { festival, year, lineup, related, comparison };
 }

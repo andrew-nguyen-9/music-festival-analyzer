@@ -8,8 +8,8 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
 | 7 | Festival data quality | `v4.2-festival-data` | DONE (merged) |
 | 1 | Header light/dark | `v4.3-header-theme` | DONE (merged) |
 | 6 | Accessibility panel | `v4.4-a11y` | DONE (merged) |
-| 2 | Homepage | `v4.5-homepage` | IN PROGRESS |
-| 3 | Festival page | `v4.6-festival-page` | todo |
+| 2 | Homepage | `v4.5-homepage` | DONE (merged) |
+| 3 | Festival page | `v4.6-festival-page` | IN PROGRESS |
 | 5 | Footer | `v4.7-footer` | todo |
 | 8 | Search | `v4.8-search` | todo |
 | 9 | Wallpaper rebuild | `v4.9-wallpaper` | todo |
@@ -101,6 +101,23 @@ Tracks per-area progress so each iteration resumes cleanly. Order is locked in P
   stays white over the image scrim in BOTH themes (a #1 gap — cards are over-media).
 - Verified live (Playwright): carousel scrolls, order correct, card text white in
   light + dark.
+
+## #3 notes (festival page)
+- **Full removal:** deleted MediaGallery / SocialFeed / FunFactsWidget components,
+  their queries (getMedia/getSocialPosts/getFunFacts) + media/social/funFacts from
+  getFestivalPageData + FestivalPageData type, pipeline media_fetcher.py +
+  fun_facts_generator.py, and the dead cron jobs (fetch-media, sync-social-feeds,
+  generate-fun-facts). Kept DraggableNotes (used by not-found.tsx, not the festival
+  page). Removed now-unused type imports.
+- **LineupAnalysis expanded — all four:** (1) genre breakdown adds a Shannon-evenness
+  diversity score + dominant-genre chips; (2) popularity & discovery adds a
+  headliner/mainstream/rising mix bar (on top of existing tiers + hidden gems);
+  (3) NEW schedule conflicts — overlapping must-see sets (headliner OR pop≥65) on
+  different stages, per-day set density (verified on Lolla: 12 overlaps, 47–48
+  sets/day); (4) NEW comparisons — vs past years + vs peer festivals (new
+  getFestivalComparison query, threaded page→tabs→analysis as a prop).
+- Verified live on Lollapalooza: all four sections render with real data; removed
+  sections gone; no new console errors.
 
 ## Env note
 - Local pipeline venv: `pipeline/.venv` (Python 3.9, deps installed). Gitignored.
