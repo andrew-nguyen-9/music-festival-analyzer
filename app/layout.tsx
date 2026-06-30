@@ -19,6 +19,8 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 import CustomCursor from "@/components/CustomCursor";
+import Footer from "@/components/Footer";
+import MotionProvider from "@/components/MotionProvider";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import WebVitals from "@/components/WebVitals";
@@ -43,22 +45,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="min-h-screen bg-surface font-sans text-white antialiased">
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Apply theme + a11y settings before first paint to avoid a flash. Dark
+            is the brand default; stored prefs (Nav toggle / a11y panel) override.
+            Mirrors lib/settings.ts — keep class/key names in sync. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var d=document.documentElement,g=function(k){return localStorage.getItem(k)};var t=g('theme');d.dataset.theme=(t==='light'||t==='dark')?t:'dark';if(g('a11y-contrast')==='on')d.classList.add('hc');if(g('a11y-motion')==='on')d.classList.add('rm');var cb=g('a11y-colorblind');if(cb&&cb!=='none')d.classList.add('cb-'+cb);d.classList.add('fs-'+(g('a11y-font')||'m'));}catch(e){document.documentElement.dataset.theme='dark';}})();",
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-surface font-sans text-[color:var(--text)] antialiased">
         {/* Film-grain texture overlay (creative-dev T19) */}
         <div className="grain-overlay" aria-hidden />
         <WebVitals />
         <OfflineIndicator />
         <ServiceWorkerRegistrar />
         <CustomCursor />
-        <Nav />
-        <main>{children}</main>
-        <footer className="border-t border-white/10 px-5 py-10 text-label text-[color:var(--text-muted)] md:px-8">
-          <div className="mx-auto max-w-wide">
-            Soundcheck · Data from Spotify, Apple Music &amp; Unsplash ·
-            Built with Next.js + Supabase
-          </div>
-        </footer>
+        <MotionProvider>
+          <Nav />
+          <main>{children}</main>
+        </MotionProvider>
+        <Footer />
       </body>
     </html>
   );

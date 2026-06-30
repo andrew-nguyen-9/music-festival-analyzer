@@ -12,18 +12,25 @@ import LineupAnalysis from "./LineupAnalysis";
 import Reveal from "./Reveal";
 import { accentGradient } from "@/lib/festival-theme";
 import type { Festival, LineupEntry } from "@/lib/types";
+import type { FestivalComparison } from "@/lib/queries";
 import type { FestivalState } from "@/lib/format";
 
 interface Props {
   festival: Festival;
   lineup: LineupEntry[];
   state: FestivalState;
+  comparison?: FestivalComparison | null;
 }
 
 type Tab = "lineup" | "schedule" | "analysis";
 type ViewMode = "grid" | "list";
 
-export default function FestivalPageTabs({ festival, lineup, state }: Props) {
+export default function FestivalPageTabs({
+  festival,
+  lineup,
+  state,
+  comparison,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("lineup");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
@@ -109,7 +116,7 @@ export default function FestivalPageTabs({ festival, lineup, state }: Props) {
           <Reveal>
             <h2 className="mb-8 text-display-lg text-white">Lineup Analysis</h2>
           </Reveal>
-          <LineupAnalysis lineup={lineup} />
+          <LineupAnalysis lineup={lineup} comparison={comparison} />
         </section>
       )}
     </>

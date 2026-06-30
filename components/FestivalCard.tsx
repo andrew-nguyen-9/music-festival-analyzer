@@ -42,13 +42,15 @@ export default function FestivalCard({ festival, priority }: Props) {
           />
         )}
         <div className="hero-scrim absolute inset-0" />
-        <div className="absolute inset-x-0 bottom-0 p-5">
-          <p className="text-label uppercase tracking-[0.12em] text-white/70">
-            {formatLocation(festival.city, festival.state)}
-          </p>
-          <h3 className="mt-1 text-display-md font-semibold leading-none text-white">
+        {/* over-media: text sits on the dark image scrim, so it stays white in
+            both themes. Reading order (v4.5): name → location → date → genres. */}
+        <div className="over-media absolute inset-x-0 bottom-0 p-5">
+          <h3 className="text-display-md font-semibold leading-none text-white">
             {festival.name}
           </h3>
+          <p className="mt-2 text-label uppercase tracking-[0.12em] text-white/70">
+            {formatLocation(festival.city, festival.state)}
+          </p>
           <p className="mt-2 text-label text-white/80">
             {festival.dates_estimated ? "~" : ""}
             {formatDateRange(festival.start_date, festival.end_date)}

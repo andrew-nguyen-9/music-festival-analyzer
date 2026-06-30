@@ -3,84 +3,161 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getFestivalTheme } from "@/lib/festival-theme";
 import { timeToMinutes, fmtSetTime, fmtDayLabel } from "@/lib/format";
-import type { Festival, LineupEntry, Stage } from "@/lib/types";
+import type { Festival, LineupEntry } from "@/lib/types";
 
 interface Props {
   festival: Festival;
   lineup: LineupEntry[];
-  stages: Stage[];
 }
 
 // Phone canvas (iPhone Pro logical ×3). Rendered at full res, previewed scaled.
 const W = 1170;
 const H = 2532;
+const MAX_SETS = 10; // artists shown on the wallpaper
+
+interface SetRow {
+  id: string;
+  name: string;
+  start: string;
+  stage: string | null;
+  headliner: boolean;
+  popularity: number;
+}
+
+interface Palette {
+  name: string;
+  bg: string;
+  fg: string;
+  /** null = use the festival accent. */
+  accent: string | null;
+}
 
 /**
- * Client-canvas phone-wallpaper generator (v2.8). Pick a day, toggle the sets you
- * want, download a PNG of your schedule with set times + stage locations in the
- * festival's accent. Pure vector/text on canvas — no remote images, so it taints
- * nothing and works offline (the default decision over a server render).
+ * Make-your-wallpaper studio (v4.9 rebuild, v4.10 by-day). A lock-screen wallpaper
+ * of YOUR festival day — pick a day, choose up to 10 sets, rendered latest →
+ * earliest with set times + stages. Strict 3-zone geometry (clock space on top,
+ * centered schedule, OS-UI safe zone on the bottom), color customization, and
+ * Soundcheck branding. Pure canvas — no remote images, exports a real-res PNG.
  */
-export default function WallpaperStudio({ festival, lineup, stages }: Props) {
+export default function WallpaperStudio({ festival, lineup }: Props) {
   const theme = getFestivalTheme(festival.accent_color);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Two previews (desktop side-panel + mobile stacked) each need their own canvas
+  // — one shared ref would only attach to the last-mounted (hidden) one.
+  const desktopCanvasRef = useRef<HTMLCanvasElement>(null);
+  const mobileCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Days that actually have scheduled set times.
   const days = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of lineup) if (e.day && e.set_time_start) set.add(e.day);
-    return [...set].sort();
+    const s = new Set<string>();
+    for (const e of lineup) if (e.day && e.set_time_start) s.add(e.day);
+    return [...s].sort();
   }, [lineup]);
 
   const [day, setDay] = useState<string>(days[0] ?? "");
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [stageFilter, setStageFilter] = useState("all");
+  const [chosen, setChosen] = useState<Set<string>>(new Set()); // starts EMPTY
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Sets for the active day, sorted by (wrapped) start time.
-  const daySets = useMemo(
+  // Reset the selection when the day changes — set ids differ per day.
+  useEffect(() => setChosen(new Set()), [day]);
+
+  // All sets for the active day, latest → earliest (timeToMinutes wraps past midnight).
+  const allDaySets = useMemo<SetRow[]>(
     () =>
       lineup
         .filter((e) => e.day === day && e.set_time_start)
-        .sort(
-          (a, b) =>
-            timeToMinutes(a.set_time_start!) - timeToMinutes(b.set_time_start!),
-        ),
+        .map((e) => ({
+          id: e.id,
+          name: e.artist.name,
+          start: e.set_time_start!,
+          stage: e.stage,
+          headliner: !!e.is_headliner,
+          popularity: e.artist.spotify_popularity ?? 0,
+        }))
+        .sort((a, b) => timeToMinutes(b.start) - timeToMinutes(a.start)),
     [lineup, day],
   );
 
-  // Default: everything on the day selected.
-  useEffect(() => {
-    setChosen(new Set(daySets.map((e) => e.id)));
-  }, [daySets]);
+  const stagesForDay = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of allDaySets) if (e.stage) s.add(e.stage);
+    return [...s].sort();
+  }, [allDaySets]);
 
-  const stageCoords = useMemo(() => {
-    const m = new Map<string, Stage>();
-    for (const s of stages) if (s.name) m.set(s.name, s);
-    return m;
-  }, [stages]);
+  const filtered = useMemo(
+    () => allDaySets.filter((e) => stageFilter === "all" || e.stage === stageFilter),
+    [allDaySets, stageFilter],
+  );
 
-  // Redraw whenever the selection changes.
+  // Chosen sets, latest → earliest, capped at MAX_SETS.
+  const chosenSets = useMemo(
+    () => allDaySets.filter((e) => chosen.has(e.id)).slice(0, MAX_SETS),
+    [allDaySets, chosen],
+  );
+
+  // ── Colors ────────────────────────────────────────────────────
+  const palettes: Palette[] = useMemo(
+    () => [
+      { name: "Dark", bg: "#0A0A0A", fg: "#FFFFFF", accent: null },
+      { name: "Light", bg: "#F6F6F7", fg: "#0D0D0F", accent: null },
+      { name: "Accent", bg: theme.accentDark, fg: "#FFFFFF", accent: theme.accentLight },
+      { name: "Mono", bg: "#000000", fg: "#FFFFFF", accent: "#FFFFFF" },
+    ],
+    [theme],
+  );
+  const [bg, setBg] = useState(palettes[0].bg);
+  const [fg, setFg] = useState(palettes[0].fg);
+  const [accent, setAccent] = useState<string>(theme.accent);
+
+  function applyPalette(p: Palette) {
+    setBg(p.bg);
+    setFg(p.fg);
+    setAccent(p.accent ?? theme.accent);
+  }
+
+  // ── Draw (to both canvases; only one is visible per breakpoint) ──
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const picked = daySets.filter((e) => chosen.has(e.id));
-    // Wait for the display font so canvas text matches the app.
-    const draw = () => paint(ctx, { festival, theme, day, picked, stageCoords });
+    const args: PaintArgs = {
+      festival,
+      day,
+      sets: chosenSets,
+      bg,
+      fg,
+      accent,
+    };
+    const draw = () => {
+      for (const ref of [desktopCanvasRef, mobileCanvasRef]) {
+        const ctx = ref.current?.getContext("2d");
+        if (ctx) paint(ctx, args);
+      }
+    };
     if (document.fonts?.ready) document.fonts.ready.then(draw).catch(draw);
     else draw();
-  }, [festival, theme, day, daySets, chosen, stageCoords]);
+  }, [festival, day, chosenSets, bg, fg, accent]);
 
+  // ── Selection helpers ─────────────────────────────────────────
   function toggle(id: string) {
     setChosen((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < MAX_SETS) next.add(id);
       return next;
     });
   }
+  function addHeadliners() {
+    const headliners = allDaySets.filter((e) => e.headliner);
+    const picks = (headliners.length > 0
+      ? headliners
+      : [...allDaySets].sort((a, b) => b.popularity - a.popularity)
+    ).slice(0, MAX_SETS);
+    setChosen(new Set(picks.map((e) => e.id)));
+  }
+  function clearAll() {
+    setChosen(new Set());
+  }
 
   function download() {
-    const canvas = canvasRef.current;
+    const canvas = desktopCanvasRef.current ?? mobileCanvasRef.current;
     if (!canvas) return;
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -97,174 +174,391 @@ export default function WallpaperStudio({ festival, lineup, stages }: Props) {
     return (
       <section className="mx-auto max-w-wide px-5 py-20 text-center md:px-8">
         <h1 className="text-display-md text-white">No schedule yet</h1>
-        <p className="mt-3 text-body text-white/60">
-          {festival.name} doesn’t have set times yet, so there’s nothing to turn
-          into a wallpaper. Check back once the schedule is published.
+        <p className="mt-3 text-body text-[color:var(--text-muted)]">
+          {festival.name} doesn&apos;t have set times yet, so there&apos;s nothing
+          to turn into a day wallpaper. Check back once the schedule is published.
         </p>
       </section>
     );
   }
 
-  return (
-    <section className="mx-auto grid max-w-wide gap-10 px-5 py-16 md:grid-cols-[1fr,minmax(280px,360px)] md:px-8">
-      {/* Controls */}
-      <div>
-        <h1 className="text-display-lg text-white">Make your wallpaper</h1>
-        <p className="mt-2 text-body text-white/60">
-          Pick a day and the sets you want. We’ll render a phone wallpaper with
-          times and stages in {festival.name}’s colors.
-        </p>
+  const controls = (
+    <Controls
+      festival={festival}
+      days={days}
+      day={day}
+      setDay={setDay}
+      filtered={filtered}
+      chosen={chosen}
+      chosenCount={chosenSets.length}
+      toggle={toggle}
+      addHeadliners={addHeadliners}
+      clearAll={clearAll}
+      stagesForDay={stagesForDay}
+      stageFilter={stageFilter}
+      setStageFilter={setStageFilter}
+      palettes={palettes}
+      applyPalette={applyPalette}
+      bg={bg}
+      setBg={setBg}
+      fg={fg}
+      setFg={setFg}
+      download={download}
+    />
+  );
 
-        <div className="mt-6 flex flex-wrap gap-2">
-          {days.map((d) => (
+  return (
+    <section className="mx-auto max-w-wide px-5 pb-10 pt-28 md:px-8 md:pt-32">
+      {/* pt-28/32 clears the fixed, transparent site Nav (matches other pages). */}
+      {/* Desktop: controls left, phone preview pinned right. */}
+      <div className="hidden gap-10 md:grid md:grid-cols-[1fr,minmax(300px,340px)]">
+        <div className="max-h-[82vh] overflow-y-auto pr-2">{controls}</div>
+        <div className="sticky top-24 self-start justify-self-center">
+          <PhonePreview canvasRef={desktopCanvasRef} />
+        </div>
+      </div>
+
+      {/* Mobile: wallpaper fills the screen; a pull-up sheet holds the controls. */}
+      <div className="md:hidden">
+        <div className="flex flex-col items-center">
+          <PhonePreview canvasRef={mobileCanvasRef} />
+          <button
+            onClick={() => setSheetOpen(true)}
+            className="mt-6 w-full rounded-full bg-accent px-6 py-3.5 text-label font-semibold uppercase tracking-wide text-black"
+          >
+            Customize ({chosenSets.length})
+          </button>
+        </div>
+        {sheetOpen && (
+          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+            <button
+              aria-label="Close"
+              onClick={() => setSheetOpen(false)}
+              className="absolute inset-0 bg-black/60"
+            />
+            <div className="relative max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-[color:var(--border)] bg-surface p-5">
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/25" />
+              {controls}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PhonePreview({
+  canvasRef,
+}: {
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+}) {
+  return (
+    <div className="rounded-[2.5rem] border-[6px] border-black/80 bg-black shadow-2xl ring-1 ring-white/10">
+      <canvas
+        ref={canvasRef}
+        width={W}
+        height={H}
+        className="block h-auto w-full max-w-[300px] rounded-[2rem]"
+      />
+    </div>
+  );
+}
+
+// ── Controls panel (shared desktop + mobile) ──────────────────────
+interface ControlsProps {
+  festival: Festival;
+  days: string[];
+  day: string;
+  setDay: (d: string) => void;
+  filtered: SetRow[];
+  chosen: Set<string>;
+  chosenCount: number;
+  toggle: (id: string) => void;
+  addHeadliners: () => void;
+  clearAll: () => void;
+  stagesForDay: string[];
+  stageFilter: string;
+  setStageFilter: (s: string) => void;
+  palettes: Palette[];
+  applyPalette: (p: Palette) => void;
+  bg: string;
+  setBg: (s: string) => void;
+  fg: string;
+  setFg: (s: string) => void;
+  download: () => void;
+}
+
+function Controls(p: ControlsProps) {
+  const atMax = p.chosenCount >= MAX_SETS;
+  return (
+    <div>
+      <h1 className="text-display-md text-white">Make your day wallpaper</h1>
+      <p className="mt-1 text-body text-[color:var(--text-muted)]">
+        Pick a day and up to {MAX_SETS} sets — {p.festival.name}.
+      </p>
+
+      {/* Day tabs */}
+      {p.days.length > 1 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {p.days.map((d) => (
             <button
               key={d}
-              onClick={() => setDay(d)}
+              onClick={() => p.setDay(d)}
               className={
                 "rounded-full px-4 py-2 text-label font-semibold uppercase tracking-wide transition-colors " +
-                (d === day
+                (d === p.day
                   ? "bg-accent text-black"
-                  : "border border-white/20 text-white/70 hover:text-white")
+                  : "border border-[color:var(--border)] text-[color:var(--text-muted)] hover:text-[color:var(--text)]")
               }
             >
               {fmtDayLabel(d)}
             </button>
           ))}
         </div>
+      )}
 
-        <ul className="mt-6 divide-y divide-white/10 rounded-2xl border border-white/10">
-          {daySets.map((e) => (
+      {/* Shortcuts */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={p.addHeadliners}
+          className="rounded-full bg-accent px-4 py-2 text-label font-semibold uppercase tracking-wide text-black"
+        >
+          + Add headliners
+        </button>
+        <button
+          onClick={p.clearAll}
+          className="rounded-full border border-[color:var(--border)] px-4 py-2 text-label font-semibold uppercase tracking-wide text-[color:var(--text-muted)] hover:text-[color:var(--text)]"
+        >
+          Clear
+        </button>
+        {p.stagesForDay.length > 0 && (
+          <Select label="Stage" value={p.stageFilter} onChange={p.setStageFilter}
+            options={["all", ...p.stagesForDay]} />
+        )}
+        <span className="ml-auto self-center text-label text-[color:var(--text-muted)]">
+          {p.chosenCount}/{MAX_SETS}
+        </span>
+      </div>
+
+      {/* Colors */}
+      <div className="mt-5">
+        <p className="mb-2 text-label uppercase tracking-widest text-[color:var(--text-muted)]">Colors</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {p.palettes.map((pal) => (
+            <button
+              key={pal.name}
+              onClick={() => p.applyPalette(pal)}
+              className="flex items-center gap-1.5 rounded-full border border-[color:var(--border)] px-3 py-1.5 text-label text-[color:var(--text)]"
+            >
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: pal.bg, boxShadow: `inset 0 0 0 2px ${pal.fg}` }} />
+              {pal.name}
+            </button>
+          ))}
+          <label className="flex items-center gap-1.5 text-label text-[color:var(--text-muted)]">
+            BG
+            <input type="color" value={p.bg} onChange={(e) => p.setBg(e.target.value)}
+              className="h-7 w-7 cursor-pointer rounded border border-[color:var(--border)] bg-transparent" />
+          </label>
+          <label className="flex items-center gap-1.5 text-label text-[color:var(--text-muted)]">
+            Text
+            <input type="color" value={p.fg} onChange={(e) => p.setFg(e.target.value)}
+              className="h-7 w-7 cursor-pointer rounded border border-[color:var(--border)] bg-transparent" />
+          </label>
+        </div>
+      </div>
+
+      {/* Set checklist (latest → earliest) */}
+      <ul className="mt-5 max-h-[40vh] divide-y divide-white/10 overflow-y-auto rounded-2xl border border-[color:var(--border)]">
+        {p.filtered.map((e) => {
+          const on = p.chosen.has(e.id);
+          return (
             <li key={e.id}>
-              <label className="flex cursor-pointer items-center gap-3 px-4 py-3">
+              <label
+                className={`flex cursor-pointer items-center gap-3 px-4 py-2.5 ${
+                  !on && atMax ? "opacity-40" : ""
+                }`}
+              >
                 <input
                   type="checkbox"
-                  checked={chosen.has(e.id)}
-                  onChange={() => toggle(e.id)}
+                  checked={on}
+                  disabled={!on && atMax}
+                  onChange={() => p.toggle(e.id)}
                   className="h-4 w-4 accent-[var(--accent)]"
                 />
                 <span className="w-20 shrink-0 text-label font-semibold text-accent">
-                  {fmtSetTime(e.set_time_start!)}
+                  {fmtSetTime(e.start)}
                 </span>
-                <span className="flex-1 text-body text-white">{e.artist.name}</span>
-                <span className="truncate text-label text-white/50">
-                  {e.stage ?? ""}
-                </span>
+                <span className="flex-1 truncate text-body text-[color:var(--text)]">{e.name}</span>
+                {e.headliner && <span className="text-[10px] font-bold uppercase text-accent">★</span>}
+                {e.stage && (
+                  <span className="max-w-[35%] truncate text-label text-[color:var(--text-muted)]">{e.stage}</span>
+                )}
               </label>
             </li>
-          ))}
-        </ul>
+          );
+        })}
+      </ul>
 
-        <button
-          onClick={download}
-          className="mt-6 rounded-full bg-accent px-6 py-3 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.02]"
-        >
-          Download wallpaper
-        </button>
-      </div>
-
-      {/* Live preview */}
-      <div className="justify-self-center">
-        <canvas
-          ref={canvasRef}
-          width={W}
-          height={H}
-          className="h-auto w-full max-w-[300px] rounded-[2rem] border border-white/15 shadow-2xl"
-        />
-      </div>
-    </section>
+      <button
+        onClick={p.download}
+        disabled={p.chosenCount === 0}
+        className="mt-5 w-full rounded-full bg-accent px-6 py-3.5 text-label font-semibold uppercase tracking-wide text-black transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Download wallpaper
+      </button>
+    </div>
   );
 }
 
-// ── Canvas painting (pure given its args) ──────────────────────
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  return (
+    <label className="flex items-center gap-2 text-label text-[color:var(--text-muted)]">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-[color:var(--border)] bg-surface-elevated px-2 py-1.5 capitalize text-[color:var(--text)]"
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+// ── Canvas painting — strict 3-zone lock-screen geometry ──────────
 interface PaintArgs {
   festival: Festival;
-  theme: ReturnType<typeof getFestivalTheme>;
   day: string;
-  picked: LineupEntry[];
-  stageCoords: Map<string, Stage>;
+  sets: SetRow[];
+  bg: string;
+  fg: string;
+  accent: string;
 }
 
 function paint(ctx: CanvasRenderingContext2D, a: PaintArgs) {
-  const { festival, theme, day, picked, stageCoords } = a;
+  const { festival, day, sets, bg, fg, accent } = a;
 
-  // Background + accent glow.
-  ctx.fillStyle = "#0A0A0A";
+  // Background + a soft accent glow up top (sits behind the clock zone).
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-  const glow = ctx.createRadialGradient(W * 0.2, 120, 40, W * 0.2, 120, W);
-  glow.addColorStop(0, hexA(theme.accent, 0.28));
-  glow.addColorStop(1, "rgba(10,10,10,0)");
+  const glow = ctx.createRadialGradient(W / 2, H * 0.16, 60, W / 2, H * 0.16, W * 0.9);
+  glow.addColorStop(0, hexA(accent, 0.22));
+  glow.addColorStop(1, hexA(accent, 0));
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  const pad = 96;
-  let y = 300;
+  ctx.textAlign = "center";
 
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = theme.accent;
-  ctx.font = "600 40px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText("MY DAY AT", pad, y);
-  y += 90;
+  // ── Zone boundaries ──
+  const BOTTOM_ZONE = (H * 2) / 3; // OS UI overlays below this — kept clear
 
-  ctx.fillStyle = "#FFFFFF";
-  ctx.font = "700 96px 'Space Grotesk', system-ui, sans-serif";
-  const nameLines = wrap(ctx, festival.name.toUpperCase(), W - pad * 2);
-  nameLines.forEach((line, i) => ctx.fillText(line, pad, y + i * 100));
-  y += 100 * nameLines.length + 20;
-
-  ctx.fillStyle = theme.accentLight;
-  ctx.font = "500 44px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText(day ? fmtDayLabel(day) : "", pad, y);
-  y += 70;
-
-  // Divider.
-  ctx.strokeStyle = "rgba(255,255,255,0.15)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(pad, y);
-  ctx.lineTo(W - pad, y);
-  ctx.stroke();
-  y += 70;
-
-  // Set list — scale line height so a full day still fits above the footer.
-  const footerTop = H - 220;
-  const rows = picked.length || 1;
-  const lh = Math.min(96, Math.max(54, (footerTop - y) / rows));
-
-  ctx.textBaseline = "middle";
-  for (const e of picked) {
-    if (y > footerTop - lh) break;
-    ctx.fillStyle = theme.accent;
-    ctx.font = `600 ${Math.round(lh * 0.32)}px 'Space Grotesk', system-ui, sans-serif`;
-    ctx.fillText(fmtSetTime(e.set_time_start!), pad, y + lh / 2);
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = `600 ${Math.round(lh * 0.4)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(truncate(ctx, e.artist.name, W - pad * 2 - 230), pad + 230, y + lh / 2 - lh * 0.16);
-
-    const stage = e.stage ?? "";
-    if (stage) {
-      ctx.fillStyle = "rgba(255,255,255,0.5)";
-      ctx.font = `400 ${Math.round(lh * 0.26)}px Inter, system-ui, sans-serif`;
-      // Mark stages that have geocoded coordinates (v2.8.4).
-      const located = stageCoords.get(stage)?.latitude != null;
-      ctx.fillText(`${located ? "● " : ""}${stage}`, pad + 230, y + lh / 2 + lh * 0.24);
-    }
-    y += lh;
+  // Header sits at the top of the center zone, just clear of the clock zone.
+  let y = H / 3 + 70;
+  ctx.fillStyle = accent;
+  ctx.font = "600 38px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillText("MY DAY AT", W / 2, y);
+  y += 96;
+  ctx.fillStyle = fg;
+  ctx.font = "700 66px 'Space Grotesk', system-ui, sans-serif";
+  for (const line of wrap(ctx, festival.name.toUpperCase(), W * 0.84).slice(0, 2)) {
+    ctx.fillText(line, W / 2, y);
+    y += 74;
+  }
+  if (day) {
+    y += 18;
+    ctx.fillStyle = hexA(accent, 0.9);
+    ctx.font = "500 42px 'Space Grotesk', system-ui, sans-serif";
+    ctx.fillText(fmtDayLabel(day).toUpperCase(), W / 2, y);
+    y += 30;
   }
 
-  // Footer brand.
+  // Column geometry (shared by divider + rows) — a borderless table.
+  const marginX = W * 0.06;
+  const xArtist = marginX;
+  const xTime = W * 0.56;
+  const xStage = W * 0.74;
+  const rightX = W - marginX;
+
+  // Divider under the header, aligned to the table margins.
+  y += 44;
+  ctx.strokeStyle = hexA(fg, 0.18);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(marginX, y);
+  ctx.lineTo(rightX, y);
+  ctx.stroke();
+
+  // ── Schedule: one borderless table row per set, latest → earliest. Columns
+  //    artist | time | stage are left-aligned so larger text fills the width. ──
+  const listTop = y + 56;
+  const listBottom = BOTTOM_ZONE + H * 0.13; // into the upper bottom-zone, clear of the home bar
+  const n = sets.length;
+  if (n > 0) {
+    const band = listBottom - listTop;
+    const lh = Math.min(150, band / n);
+    const rowFont = Math.min(56, Math.round(lh * 0.5));
+    const artistMaxW = xTime - 28 - xArtist;
+    const stageMaxW = rightX - xStage;
+
+    const blockH = lh * n;
+    let ly = listTop + (band - blockH) / 2 + lh / 2;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    for (const s of sets) {
+      ctx.font = `600 ${rowFont}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = fg;
+      ctx.fillText(truncate(ctx, s.name, artistMaxW), xArtist, ly);
+
+      ctx.fillStyle = accent;
+      ctx.fillText(fmtSetTime(s.start), xTime, ly);
+
+      if (s.stage) {
+        // Drop the redundant "Stage" suffix so the column stays compact.
+        const stage = s.stage.replace(/\s+stage$/i, "");
+        ctx.font = `500 ${rowFont}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = hexA(fg, 0.55);
+        ctx.fillText(truncate(ctx, stage, stageMaxW), xStage, ly);
+      }
+      ly += lh;
+    }
+    ctx.textAlign = "center"; // restore for the branding below
+  } else {
+    ctx.fillStyle = hexA(fg, 0.5);
+    ctx.font = "500 40px Inter, system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Pick sets to build your day", W / 2, (listTop + listBottom) / 2);
+  }
+
+  // ── Branding: Soundcheck wordmark, bottom-center in the safe zone ──
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "rgba(255,255,255,0.4)";
-  ctx.font = "500 34px 'Space Grotesk', system-ui, sans-serif";
-  ctx.fillText("festivalanalyzer", pad, H - 120);
+  const brandY = H * 0.9;
+  const grad = ctx.createLinearGradient(W / 2 - 150, 0, W / 2 + 150, 0);
+  grad.addColorStop(0, "#FF7A1A");
+  grad.addColorStop(1, "#FFC83D");
+  ctx.font = "700 40px 'Space Grotesk', system-ui, sans-serif";
+  ctx.fillStyle = grad;
+  ctx.fillText("◗ SOUNDCHECK", W / 2, brandY);
+  ctx.fillStyle = hexA(fg, 0.4);
+  ctx.font = "500 26px Inter, system-ui, sans-serif";
+  ctx.fillText("soundcheck.an9.dev", W / 2, brandY + 40);
 }
 
 // ── tiny canvas text helpers ──
-function wrap(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxW: number,
-): string[] {
+function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let line = "";
@@ -278,7 +572,7 @@ function wrap(
     }
   }
   if (line) lines.push(line);
-  return lines.slice(0, 3);
+  return lines;
 }
 
 function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
@@ -290,8 +584,9 @@ function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
 
 function hexA(hex: string, alpha: number): string {
   const h = hex.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }

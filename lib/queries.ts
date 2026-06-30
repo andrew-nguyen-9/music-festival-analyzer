@@ -16,12 +16,8 @@ import type {
   Festival,
   FestivalGuide,
   IngestionRunSummary,
-  FunFact,
-  FunFactsRow,
   LineupEntry,
-  Media,
   SearchResult,
-  SocialPost,
   Stage,
   Suggestion,
 } from "./types";
@@ -85,6 +81,10 @@ export async function getFeaturedFestivals(limit = 6): Promise<Festival[]> {
       .select(FESTIVAL_CARD)
       .eq("is_active", true)
       .contains("tags", ["flagship"])
+      // Real-data only (v4.5, depends on v4.2): a confirmed (non-estimated) date
+      // means the festival was verified from Ticketmaster/official — keeps
+      // placeholder/TBA festivals out of the featured carousel.
+      .eq("dates_estimated", false)
       .gte("start_date", today)
       .order("start_date", { ascending: true })
       .limit(limit);
@@ -196,75 +196,6 @@ export async function getStages(festivalId: string): Promise<Stage[]> {
     return (data as unknown as Stage[]) ?? [];
   } catch (e) {
     warn("getStages", e);
-    return [];
-  }
-}
-
-// ── Media ──────────────────────────────────────────────────────
-
-export async function getMedia(
-  festivalId: string,
-  limit = 18,
-): Promise<Media[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("media")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .limit(limit);
-    if (error) throw error;
-    return (data as Media[]) ?? [];
-  } catch (e) {
-    warn("getMedia", e);
-    return [];
-  }
-}
-
-// ── Social posts ───────────────────────────────────────────────
-
-export async function getSocialPosts(
-  festivalId: string,
-  limit = 12,
-): Promise<SocialPost[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("social_posts")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .order("posted_at", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return (data as SocialPost[]) ?? [];
-  } catch (e) {
-    warn("getSocialPosts", e);
-    return [];
-  }
-}
-
-// ── Fun facts ──────────────────────────────────────────────────
-
-export async function getFunFacts(
-  festivalId: string,
-  year: number,
-): Promise<FunFact[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("fun_facts")
-      .select("*")
-      .eq("festival_id", festivalId)
-      .eq("year", year)
-      .maybeSingle();
-    if (error) throw error;
-    const row = data as FunFactsRow | null;
-    return Array.isArray(row?.facts) ? row!.facts : [];
-  } catch (e) {
-    warn("getFunFacts", e);
     return [];
   }
 }
@@ -413,6 +344,226 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
   }
 }
 
+// ── v4.6 best-fit search: geo + genre layered on the trigram RPC ─────
+// We extend search in the route/query layer (PostgREST) rather than the SQL RPC
+// because this environment can't apply migrations; the trigram RPC still does
+// typo-tolerant name matching, and these add geo + genre intent on top.
+// ponytail: no bloom filters — Postgres trigram + GIN indexes already give fuzzy
+// matching at this catalog size (~80 festivals / ~700 artists); a bloom filter
+// would only help to *avoid* lookups we already do cheaply. Add one only if the
+// catalog grows past what trigram scans handle well.
+
+const GENRE_SYNONYMS: Record<string, string[]> = {
+  edm: ["electronic", "house", "techno", "dance", "dubstep", "bass"],
+  electronic: ["edm", "house", "techno", "dance"],
+  "hip hop": ["rap", "hip-hop", "trap"],
+  "hip-hop": ["hip hop", "rap", "trap"],
+  rap: ["hip hop", "hip-hop", "trap"],
+  indie: ["indie rock", "indie pop", "alternative"],
+  alt: ["alternative", "alternative rock", "indie"],
+  rock: ["alternative rock", "indie rock", "punk", "metal"],
+  pop: ["dance-pop", "electropop", "pop rock"],
+  country: ["americana", "folk"],
+  rnb: ["r&b", "soul", "contemporary r&b"],
+  "r&b": ["rnb", "soul", "contemporary r&b"],
+};
+
+const US_STATES: Record<string, string> = {
+  alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA",
+  colorado: "CO", connecticut: "CT", delaware: "DE", florida: "FL", georgia: "GA",
+  hawaii: "HI", idaho: "ID", illinois: "IL", indiana: "IN", iowa: "IA",
+  kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD",
+  massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS",
+  missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV", "new hampshire": "NH",
+  "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC",
+  "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA",
+  "rhode island": "RI", "south carolina": "SC", "south dakota": "SD", tennessee: "TN",
+  texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA",
+  "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
+};
+
+const NEARBY_MILES = 150;
+
+function haversineMiles(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const R = 3958.8; // earth radius, miles
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Festivals matching a place (city/state), plus nearby festivals by distance. */
+async function searchByLocation(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const term = q.toLowerCase();
+  const stateAbbr = US_STATES[term] ?? (q.length === 2 ? q.toUpperCase() : null);
+  try {
+    const { data } = await sb
+      .from("festivals")
+      .select("id, slug, name, city, state, latitude, longitude")
+      .eq("is_active", true);
+    const all = (data ?? []) as {
+      id: string; slug: string; name: string; city: string | null;
+      state: string | null; latitude: number | null; longitude: number | null;
+    }[];
+
+    const exact = all.filter(
+      (f) =>
+        (f.city && f.city.toLowerCase().includes(term)) ||
+        (f.state && (f.state.toLowerCase() === term || f.state === stateAbbr)),
+    );
+    if (exact.length === 0) return [];
+
+    const out: SearchResult[] = exact.map((f) => ({
+      type: "festival" as const,
+      id: f.id,
+      slug: f.slug,
+      name: f.name,
+      description: [f.city, f.state].filter(Boolean).join(", ") || null,
+      score: 0.95,
+    }));
+
+    // Nearby: other geocoded festivals within NEARBY_MILES of any exact match.
+    const centers = exact
+      .filter((f) => f.latitude != null && f.longitude != null)
+      .map((f) => ({ lat: f.latitude!, lng: f.longitude! }));
+    const exactIds = new Set(exact.map((f) => f.id));
+    if (centers.length > 0) {
+      const nearby: { f: (typeof all)[number]; mi: number }[] = [];
+      for (const f of all) {
+        if (exactIds.has(f.id) || f.latitude == null || f.longitude == null) continue;
+        const mi = Math.min(
+          ...centers.map((c) => haversineMiles(c, { lat: f.latitude!, lng: f.longitude! })),
+        );
+        if (mi <= NEARBY_MILES) nearby.push({ f, mi });
+      }
+      nearby.sort((a, b) => a.mi - b.mi);
+      for (const { f, mi } of nearby.slice(0, 8)) {
+        out.push({
+          type: "festival",
+          id: f.id,
+          slug: f.slug,
+          name: f.name,
+          description: `${Math.round(mi)} mi away · ${[f.city, f.state].filter(Boolean).join(", ")}`,
+          score: 0.7 - mi / 1000,
+        });
+      }
+    }
+    return out;
+  } catch (e) {
+    warn("searchByLocation", e);
+    return [];
+  }
+}
+
+/** Artists + festivals matching a genre (with synonym expansion). */
+async function searchByGenre(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const base = q.toLowerCase();
+  const terms = Array.from(new Set([base, ...(GENRE_SYNONYMS[base] ?? [])]));
+  try {
+    const [artistsRes, festsRes] = await Promise.all([
+      sb.from("artists").select("id, slug, name, genres, spotify_popularity")
+        .overlaps("genres", terms)
+        .order("spotify_popularity", { ascending: false, nullsFirst: false })
+        .limit(10),
+      sb.from("festivals").select("id, slug, name, tags")
+        .overlaps("tags", terms)
+        .eq("is_active", true)
+        .limit(8),
+    ]);
+    const out: SearchResult[] = [];
+    for (const a of (artistsRes.data ?? []) as { id: string; slug: string; name: string; genres: string[] | null }[]) {
+      out.push({
+        type: "artist", id: a.id, slug: a.slug, name: a.name,
+        description: (a.genres ?? []).slice(0, 3).join(" · ") || null,
+        score: 0.85,
+      });
+    }
+    for (const f of (festsRes.data ?? []) as { id: string; slug: string; name: string; tags: string[] | null }[]) {
+      out.push({
+        type: "festival", id: f.id, slug: f.slug, name: f.name,
+        description: `${q} lineup · ${(f.tags ?? []).slice(0, 3).join(", ")}`,
+        score: 0.8,
+      });
+    }
+    return out;
+  } catch (e) {
+    warn("searchByGenre", e);
+    return [];
+  }
+}
+
+/** Substring (ILIKE) name match — catches longer names the trigram RPC misses,
+ * e.g. "bonnaroo" → "Bonnaroo Music and Arts Festival". */
+async function searchByName(q: string): Promise<SearchResult[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  try {
+    const [fests, artists] = await Promise.all([
+      sb.from("festivals").select("id, slug, name, city, state").ilike("name", like).eq("is_active", true).limit(8),
+      sb.from("artists").select("id, slug, name, genres").ilike("name", like).limit(8),
+    ]);
+    const out: SearchResult[] = [];
+    for (const f of (fests.data ?? []) as { id: string; slug: string; name: string; city: string | null; state: string | null }[]) {
+      out.push({
+        type: "festival", id: f.id, slug: f.slug, name: f.name,
+        description: [f.city, f.state].filter(Boolean).join(", ") || null,
+        // Prefix matches rank above mid-name matches.
+        score: f.name.toLowerCase().startsWith(q.toLowerCase()) ? 0.97 : 0.78,
+      });
+    }
+    for (const a of (artists.data ?? []) as { id: string; slug: string; name: string; genres: string[] | null }[]) {
+      out.push({
+        type: "artist", id: a.id, slug: a.slug, name: a.name,
+        description: (a.genres ?? []).slice(0, 3).join(" · ") || null,
+        score: a.name.toLowerCase().startsWith(q.toLowerCase()) ? 0.95 : 0.76,
+      });
+    }
+    return out;
+  } catch (e) {
+    warn("searchByName", e);
+    return [];
+  }
+}
+
+/**
+ * Best-fit unified search (v4.6): trigram name match (RPC) + substring names +
+ * location radius + genre intent, merged and de-duped by (type,id), highest
+ * score wins.
+ */
+export async function searchEnhanced(query: string): Promise<SearchResult[]> {
+  const q = query.trim();
+  if (q.length === 0) return [];
+  const [base, byName, location, genre] = await Promise.all([
+    searchAll(q),
+    searchByName(q),
+    searchByLocation(q),
+    searchByGenre(q),
+  ]);
+  const merged = new Map<string, SearchResult>();
+  for (const r of [base, byName, location, genre].flat()) {
+    const key = `${r.type}:${r.id}`;
+    const prev = merged.get(key);
+    if (!prev || r.score > prev.score) {
+      // Keep the most informative description when scores tie/replace.
+      merged.set(key, { ...r, description: r.description ?? prev?.description ?? null });
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.score - a.score).slice(0, 30);
+}
+
 /** Recent ingestion runs for the observability dashboard (v3.11). Public-read. */
 export async function getRecentIngestionRuns(
   limit = 80,
@@ -472,14 +623,101 @@ export async function searchSuggest(query: string): Promise<Suggestion[]> {
 
 // ── Convenience: festival page bundle ──────────────────────────
 
+export interface FestivalComparison {
+  self: { artists: number; avgPop: number | null };
+  pastYears: { year: number; artists: number; avgPop: number | null }[];
+  peers: { slug: string; name: string; artists: number; avgPop: number | null }[];
+}
+
+interface PopRow {
+  festival_id: string;
+  year: number | null;
+  artist_id: string;
+  artists: { spotify_popularity: number | null } | null;
+}
+
+/** Aggregate distinct-artist count + avg Spotify popularity per (festival, year). */
+function aggregate(rows: PopRow[]): Map<string, { artists: Set<string>; pops: number[] }> {
+  const m = new Map<string, { artists: Set<string>; pops: number[] }>();
+  for (const r of rows) {
+    const key = `${r.festival_id}__${r.year ?? "?"}`;
+    if (!m.has(key)) m.set(key, { artists: new Set(), pops: [] });
+    const bucket = m.get(key)!;
+    bucket.artists.add(r.artist_id);
+    const pop = r.artists?.spotify_popularity;
+    if (pop != null) bucket.pops.push(pop);
+  }
+  return m;
+}
+
+const avg = (xs: number[]) =>
+  xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : null;
+
+/**
+ * Comparison data for the lineup-analysis "Comparisons" panel (v4.6): this
+ * festival vs its own past years, and vs similar (peer) festivals' current year.
+ * Peers are the already-fetched related festivals, so this is two extra queries.
+ */
+export async function getFestivalComparison(
+  festival: Festival,
+  year: number,
+  peers: Festival[],
+): Promise<FestivalComparison | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const POP = "festival_id, year, artist_id, artists(spotify_popularity)";
+    const peerIds = peers.map((p) => p.id);
+    const [ownRes, peerRes] = await Promise.all([
+      sb.from("lineups").select(POP).eq("festival_id", festival.id),
+      peerIds.length
+        ? sb.from("lineups").select(POP).in("festival_id", peerIds).eq("year", year)
+        : Promise.resolve({ data: [] as PopRow[], error: null }),
+    ]);
+    if (ownRes.error) throw ownRes.error;
+
+    const own = aggregate((ownRes.data as unknown as PopRow[]) ?? []);
+    const self = own.get(`${festival.id}__${year}`);
+    const pastYears = [...own.entries()]
+      .map(([k, v]) => ({
+        year: Number(k.split("__")[1]),
+        artists: v.artists.size,
+        avgPop: avg(v.pops),
+      }))
+      .filter((p) => p.year !== year && !Number.isNaN(p.year))
+      .sort((a, b) => b.year - a.year)
+      .slice(0, 4);
+
+    const peerAgg = aggregate((peerRes.data as unknown as PopRow[]) ?? []);
+    const byId = new Map(peers.map((p) => [p.id, p]));
+    const peerStats = [...peerAgg.entries()]
+      .map(([k, v]) => {
+        const p = byId.get(k.split("__")[0]);
+        return p
+          ? { slug: p.slug, name: p.name, artists: v.artists.size, avgPop: avg(v.pops) }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+      .sort((a, b) => b.artists - a.artists)
+      .slice(0, 4);
+
+    return {
+      self: { artists: self?.artists.size ?? 0, avgPop: avg(self?.pops ?? []) },
+      pastYears,
+      peers: peerStats,
+    };
+  } catch (e) {
+    warn("getFestivalComparison", e);
+    return null;
+  }
+}
+
 export interface FestivalPageData {
   festival: Festival;
   year: number;
   lineup: LineupEntry[];
-  media: Media[];
-  social: SocialPost[];
-  funFacts: FunFact[];
   related: Festival[];
+  comparison: FestivalComparison | null;
 }
 
 export async function getFestivalPageData(
@@ -488,12 +726,10 @@ export async function getFestivalPageData(
   const festival = await getFestivalBySlug(slug);
   if (!festival) return null;
   const year = festivalYear(festival.start_date);
-  const [lineup, media, social, funFacts, related] = await Promise.all([
+  const [lineup, related] = await Promise.all([
     getLineup(festival.id, year),
-    getMedia(festival.id),
-    getSocialPosts(festival.id),
-    getFunFacts(festival.id, year),
     getRelatedFestivals(festival),
   ]);
-  return { festival, year, lineup, media, social, funFacts, related };
+  const comparison = await getFestivalComparison(festival, year, related);
+  return { festival, year, lineup, related, comparison };
 }

@@ -17,6 +17,10 @@
   --surface-elevated: #141414;
   --text: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.55);
+  --border: rgba(255, 255, 255, 0.1);
+  /* Accent tuned for legible text on the page surface (dark surface → use the
+     bright accent). Light theme overrides this to the darker accent. */
+  --accent-on-surface: var(--accent-light);
 
   /* Upcoming / TBD festival state */
   --upcoming-light: #a78bfa;
@@ -30,6 +34,53 @@
   --dur-reveal: 0.6s;   /* scroll-into-view reveals */
   --dur-morph: 0.45s;   /* grid → detail view transition */
   --dur-micro: 0.2s;    /* hover / press feedback */
+}
+
+/* ── Light theme (v4.1) ───────────────────────────────────────
+   A full, tuned light palette — not a cheap invert. The app was built dark-first
+   with pervasive hardcoded `text-white`/`bg-black`/`border-white/10` utilities
+   across ~46 files, so rather than rewrite every component we redefine the
+   palette here and remap those neutral utilities to semantic tokens under the
+   theme attribute. Festival-accent and hero-over-image text are handled
+   explicitly below. Set via <html data-theme="light"> (Nav toggle + no-flash
+   script in layout.tsx). */
+[data-theme="light"] {
+  --surface: #f6f6f7;
+  --surface-elevated: #ffffff;
+  --text: #0d0d0f;
+  --text-muted: rgba(13, 13, 15, 0.6);
+  --border: rgba(13, 13, 15, 0.12);
+  /* Bright festival accents (e.g. #ff4500) lose contrast as text on white, so on
+     light surfaces accent-as-text uses the darker accent. */
+  --accent-on-surface: var(--accent-dark);
+}
+
+/* Remap the hardcoded neutral utilities under the light theme. Attribute
+   selectors ([class*="text-white/"]) match every opacity variant in one rule and
+   avoid escaped-slash class selectors (which PostCSS/Tailwind mangled here).
+   !important makes this a deliberate theming layer that beats the static utility
+   values regardless of cascade order — the app wasn't built with semantic tokens,
+   so this is the seam where dark-first utilities become theme-aware. */
+[data-theme="light"] .text-white {
+  color: var(--text) !important;
+}
+[data-theme="light"] [class*="text-white/"] {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] .bg-black {
+  background-color: var(--surface) !important;
+}
+[data-theme="light"] [class*="bg-white/"] {
+  background-color: rgba(13, 13, 15, 0.05) !important;
+}
+[data-theme="light"] [class*="border-white/"] {
+  border-color: var(--border) !important;
+}
+/* Hero text sits over a dark image scrim in BOTH themes — keep it white. Higher
+   specificity (.over-media + class) re-asserts white over the remaps above. */
+[data-theme="light"] .over-media .text-white,
+[data-theme="light"] .over-media [class*="text-white/"] {
+  color: #fff !important;
 }
 
 html {
@@ -144,4 +195,79 @@ body.cursor-none * {
   ::view-transition-new(*) {
     animation: none !important;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Accessibility settings (v4.4) — applied via <html> classes by the
+   pre-paint script + the settings panel. localStorage only.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Font scaling — everything sizes in rem, so scaling the root scales the whole
+   UI. Verified to not break layout at XL. */
+html.fs-s { font-size: 90%; }
+html.fs-m { font-size: 100%; }
+html.fs-l { font-size: 112.5%; }
+html.fs-xl { font-size: 125%; }
+
+/* Reduced motion — a MANUAL override that complements the prefers-reduced-motion
+   media query (Framer Motion is also forced off via MotionConfig in layout). */
+html.rm *,
+html.rm *::before,
+html.rm *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+html.rm .grain-overlay { display: none; }
+html.rm ::view-transition-group(*),
+html.rm ::view-transition-old(*),
+html.rm ::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* High contrast — push the neutral tokens to their extremes in both themes and
+   thicken the focus ring. */
+html.hc:not([data-theme="light"]) {
+  --surface: #000000;
+  --surface-elevated: #0a0a0a;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.85);
+  --border: rgba(255, 255, 255, 0.65);
+}
+[data-theme="light"].hc {
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --text: #000000;
+  --text-muted: rgba(0, 0, 0, 0.78);
+  --border: rgba(0, 0, 0, 0.55);
+}
+html.hc :focus-visible {
+  outline-width: 3px;
+}
+
+/* Color-blind safe palettes — curated Okabe-Ito hues that stay distinguishable
+   for each deficiency. NOT a CSS filter: we swap the festival accent vars. The
+   `.festival-theme` selector overrides FestivalThemeStyle's per-festival inline
+   accent (stylesheet !important beats an element's own inline normal value). */
+html.cb-protanopia,
+html.cb-protanopia .festival-theme {
+  --accent: #0072b2 !important;
+  --accent-light: #56b4e9 !important;
+  --accent-dark: #00537f !important;
+  --accent-on-surface: #0072b2 !important;
+}
+html.cb-deuteranopia,
+html.cb-deuteranopia .festival-theme {
+  --accent: #e69f00 !important;
+  --accent-light: #f6c343 !important;
+  --accent-dark: #9c6c00 !important;
+  --accent-on-surface: #9c6c00 !important;
+}
+html.cb-tritanopia,
+html.cb-tritanopia .festival-theme {
+  --accent: #d55e00 !important;
+  --accent-light: #ff8c42 !important;
+  --accent-dark: #a04500 !important;
+  --accent-on-surface: #d55e00 !important;
 }

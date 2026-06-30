@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { formatCount } from "@/lib/format";
 import type { LineupEntry } from "@/lib/types";
+import type { FestivalComparison } from "@/lib/queries";
 
 // ── Tier definitions ─────────────────────────────────────────────
 
@@ -68,9 +69,12 @@ function computeHeadlinerIds(lineup: LineupEntry[]): Set<string> {
 
 // ── Component ────────────────────────────────────────────────────
 
-interface Props { lineup: LineupEntry[] }
+interface Props {
+  lineup: LineupEntry[];
+  comparison?: FestivalComparison | null;
+}
 
-export default function LineupAnalysis({ lineup }: Props) {
+export default function LineupAnalysis({ lineup, comparison }: Props) {
   const headlinerIds = useMemo(() => computeHeadlinerIds(lineup), [lineup]);
   const headliners   = useMemo(() => lineup.filter((e) => headlinerIds.has(e.id)), [lineup, headlinerIds]);
 
@@ -82,6 +86,26 @@ export default function LineupAnalysis({ lineup }: Props) {
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [lineup]);
+
+  // ── Genre diversity (#1) — Shannon evenness over the genre mix, 0–100.
+  // 100 = perfectly even spread across genres; low = one genre dominates.
+  const genreDiversity = useMemo(() => {
+    const total = genreCounts.reduce((s, [, c]) => s + c, 0);
+    if (total === 0 || genreCounts.length < 2) return null;
+    const h = -genreCounts.reduce((s, [, c]) => {
+      const p = c / total;
+      return s + p * Math.log(p);
+    }, 0);
+    return Math.round((h / Math.log(genreCounts.length)) * 100);
+  }, [genreCounts]);
+
+  const dominantGenres = useMemo(() => {
+    const total = genreCounts.reduce((s, [, c]) => s + c, 0) || 1;
+    return genreCounts.slice(0, 3).map(([g, c]) => ({
+      genre: g,
+      pct: Math.round((c / total) * 100),
+    }));
+  }, [genreCounts]);
 
   // ── Popularity tier distribution ─────────────────────────────
   const popWithData  = lineup.filter((e) => e.artist.spotify_popularity != null);
@@ -165,6 +189,59 @@ export default function LineupAnalysis({ lineup }: Props) {
     ? Math.round((popWithData.filter((e) => (e.artist.spotify_popularity ?? 0) < 40).length / popWithData.length) * 100)
     : null;
 
+  // ── Headliner vs rising mix (#2) ──────────────────────────────
+  const mix = useMemo(() => {
+    const rising = popWithData.filter((e) => (e.artist.spotify_popularity ?? 0) < 45).length;
+    const mainstream = popWithData.length - rising - headliners.length;
+    return {
+      headliners: headliners.length,
+      mainstream: Math.max(0, mainstream),
+      rising,
+      total: popWithData.length,
+    };
+  }, [popWithData, headliners.length]);
+
+  // ── Schedule conflicts (#3) — only meaningful when sets are timed.
+  // A conflict = two "must-see" acts (headliner OR popularity ≥ 65) whose set
+  // times overlap on different stages the same day. Also per-day set density.
+  const schedule = useMemo(() => {
+    const timed = lineup.filter(
+      (e) => e.day && e.stage && e.set_time_start && e.set_time_end,
+    );
+    if (timed.length < 2) return null;
+    const mustSee = (e: LineupEntry) =>
+      headlinerIds.has(e.id) || (e.artist.spotify_popularity ?? 0) >= 65;
+    const byDay = new Map<string, LineupEntry[]>();
+    for (const e of timed) {
+      if (!byDay.has(e.day!)) byDay.set(e.day!, []);
+      byDay.get(e.day!)!.push(e);
+    }
+    const conflicts: {
+      day: string;
+      a: LineupEntry;
+      b: LineupEntry;
+      from: string;
+      to: string;
+    }[] = [];
+    for (const [day, acts] of byDay) {
+      const must = acts.filter(mustSee);
+      for (let i = 0; i < must.length; i++) {
+        for (let j = i + 1; j < must.length; j++) {
+          const a = must[i], b = must[j];
+          if (a.stage === b.stage) continue;
+          const from = a.set_time_start! > b.set_time_start! ? a.set_time_start! : b.set_time_start!;
+          const to = a.set_time_end! < b.set_time_end! ? a.set_time_end! : b.set_time_end!;
+          if (from < to) conflicts.push({ day, a, b, from, to });
+        }
+      }
+    }
+    conflicts.sort((x, y) => x.day.localeCompare(y.day) || x.from.localeCompare(y.from));
+    const density = [...byDay.entries()]
+      .map(([day, acts]) => ({ day, count: acts.length }))
+      .sort((a, b) => a.day.localeCompare(b.day));
+    return { conflicts: conflicts.slice(0, 12), density };
+  }, [lineup, headlinerIds]);
+
   return (
     <div className="space-y-12">
 
@@ -178,6 +255,66 @@ export default function LineupAnalysis({ lineup }: Props) {
           <StatBox value={String(avgPop)} label={avgPopLabel(avgPop)} accent />
         )}
       </div>
+
+      {/* ── Genre breakdown summary (#1) ─────────────────────────── */}
+      {(genreDiversity != null || dominantGenres.length > 0) && (
+        <div className="grid gap-4 sm:grid-cols-[auto,1fr] sm:items-center">
+          {genreDiversity != null && (
+            <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-surface-elevated px-5 py-4">
+              <div className="text-center">
+                <p className="text-display-md font-semibold text-accent">{genreDiversity}</p>
+                <p className="text-[10px] uppercase tracking-widest text-white/40">Diversity</p>
+              </div>
+              <p className="max-w-[18ch] text-[12px] leading-relaxed text-white/50">
+                {genreDiversity >= 70
+                  ? "A broad, genre-spanning lineup."
+                  : genreDiversity >= 45
+                    ? "A balanced mix with a clear lean."
+                    : "Focused on a dominant sound."}
+              </p>
+            </div>
+          )}
+          {dominantGenres.length > 0 && (
+            <div>
+              <SectionLabel>Dominant genres</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {dominantGenres.map((d) => (
+                  <span
+                    key={d.genre}
+                    className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 text-[12px] capitalize text-[color:var(--accent-on-surface)]"
+                  >
+                    {d.genre} · {d.pct}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Headliner vs rising mix (#2) ─────────────────────────── */}
+      {mix.total > 0 && (
+        <div>
+          <SectionLabel>Headliner vs rising mix</SectionLabel>
+          <div className="mb-3 flex h-4 w-full overflow-hidden rounded-full">
+            {[
+              { label: "Headliners", n: mix.headliners, bar: "bg-yellow-400" },
+              { label: "Mainstream", n: mix.mainstream, bar: "bg-accent" },
+              { label: "Rising", n: mix.rising, bar: "bg-sky-400" },
+            ].map((s) =>
+              s.n > 0 ? (
+                <div key={s.label} title={`${s.label}: ${s.n}`} className={s.bar}
+                  style={{ width: `${(s.n / mix.total) * 100}%` }} />
+              ) : null,
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <MixStat n={mix.headliners} label="Headliners" dot="bg-yellow-400" />
+            <MixStat n={mix.mainstream} label="Mainstream" dot="bg-accent" />
+            <MixStat n={mix.rising} label="Rising / discovery" dot="bg-sky-400" />
+          </div>
+        </div>
+      )}
 
       {/* ── Popularity tier breakdown (full-width) ───────────────── */}
       {popWithData.length > 0 && (
@@ -407,6 +544,83 @@ export default function LineupAnalysis({ lineup }: Props) {
 
       </div>
 
+      {/* ── Schedule conflicts (#3) ──────────────────────────────── */}
+      {schedule && (
+        <div>
+          <SectionLabel>Schedule conflicts &amp; density</SectionLabel>
+          <p className="mb-4 text-[12px] text-white/40">
+            {schedule.conflicts.length > 0
+              ? `${schedule.conflicts.length} overlap${schedule.conflicts.length === 1 ? "" : "s"} between must-see acts on different stages`
+              : "No must-see acts clash — every headliner-tier set is yours to catch."}
+          </p>
+          {/* Per-day set density */}
+          {schedule.density.length > 1 && (
+            <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {schedule.density.map((d) => (
+                <div key={d.day} className="rounded-xl border border-white/10 bg-surface-elevated px-3 py-2.5">
+                  <p className="text-[11px] uppercase tracking-wide text-white/40">{fmtDayShort(d.day)}</p>
+                  <p className="text-body font-semibold text-white">{d.count} sets</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {schedule.conflicts.length > 0 && (
+            <div className="space-y-2">
+              {schedule.conflicts.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-white/10 bg-surface-elevated px-4 py-3"
+                >
+                  <span className="text-[11px] uppercase tracking-wide text-accent">
+                    {fmtDayShort(c.day)} · {c.from.slice(0, 5)}–{c.to.slice(0, 5)}
+                  </span>
+                  <Link href={`/artist/${c.a.artist.slug}`} className="font-medium text-white hover:text-accent">
+                    {c.a.artist.name}
+                  </Link>
+                  <span className="text-[11px] text-white/35">{c.a.stage}</span>
+                  <span className="text-white/30">vs</span>
+                  <Link href={`/artist/${c.b.artist.slug}`} className="font-medium text-white hover:text-accent">
+                    {c.b.artist.name}
+                  </Link>
+                  <span className="text-[11px] text-white/35">{c.b.stage}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Comparisons (#4) ─────────────────────────────────────── */}
+      {comparison && (comparison.pastYears.length > 0 || comparison.peers.length > 0) && (
+        <div>
+          <SectionLabel>How it compares</SectionLabel>
+          <div className="grid gap-8 md:grid-cols-2">
+            {comparison.pastYears.length > 0 && (
+              <div>
+                <p className="mb-3 text-[12px] text-white/40">vs past years (artists · avg popularity)</p>
+                <div className="space-y-2">
+                  <CompareRow label="This year" artists={comparison.self.artists} avgPop={comparison.self.avgPop} highlight />
+                  {comparison.pastYears.map((p) => (
+                    <CompareRow key={p.year} label={String(p.year)} artists={p.artists} avgPop={p.avgPop} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {comparison.peers.length > 0 && (
+              <div>
+                <p className="mb-3 text-[12px] text-white/40">vs similar festivals ({/* current year */}artists · avg popularity)</p>
+                <div className="space-y-2">
+                  <CompareRow label="This festival" artists={comparison.self.artists} avgPop={comparison.self.avgPop} highlight />
+                  {comparison.peers.map((p) => (
+                    <CompareRow key={p.slug} label={p.name} href={`/festival/${p.slug}`} artists={p.artists} avgPop={p.avgPop} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Age data note ────────────────────────────────────────── */}
       <div className="flex items-start gap-4 rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5">
         <span className="mt-0.5 text-xl">📅</span>
@@ -450,4 +664,60 @@ function ArtistRow({ entry, children }: { entry: LineupEntry; children?: React.R
       {children}
     </Link>
   );
+}
+
+function MixStat({ n, label, dot }: { n: number; label: string; dot: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-surface-elevated px-3 py-3">
+      <p className="text-display-md font-semibold text-white">{n}</p>
+      <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] text-white/40">
+        <span className={`h-2 w-2 rounded-full ${dot}`} />
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function CompareRow({
+  label,
+  artists,
+  avgPop,
+  href,
+  highlight,
+}: {
+  label: string;
+  artists: number;
+  avgPop: number | null;
+  href?: string;
+  highlight?: boolean;
+}) {
+  const inner = (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-2.5 ${
+        highlight ? "border-accent/40 bg-accent/5" : "border-white/10 bg-surface-elevated"
+      }`}
+    >
+      <span className={`truncate text-[13px] ${highlight ? "font-semibold text-white" : "text-white/80"}`}>
+        {label}
+      </span>
+      <span className="flex shrink-0 items-center gap-3 text-[12px] text-white/45">
+        <span>{artists} artists</span>
+        {avgPop != null && <span className="text-accent">pop {avgPop}</span>}
+      </span>
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="block transition-opacity hover:opacity-80">
+      {inner}
+    </Link>
+  ) : (
+    inner
+  );
+}
+
+function fmtDayShort(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
